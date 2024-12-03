@@ -36,14 +36,10 @@ install(TARGETS py_gui py_visualizer EXPORT CudaTargets
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
 )
-install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-    DESTINATION include
-    FILES_MATCHING 
-        PATTERN "*.hpp"
-        PATTERN "*.h"
-        PATTERN "*.py"
-        PATTERN "build" EXCLUDE
-)
+install(FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/py_helper.hpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/visualizer.py
+    DESTINATION include)
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/py_visualizerConfig.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/py_visualizer-config-version.cmake"

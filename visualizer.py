@@ -132,21 +132,17 @@ def display_image(matrix):
     if not isinstance(matrix, np.ndarray):
         raise TypeError("Input must be a NumPy array.")
 
-    # 检查矩阵维度
-    if matrix.ndim == 2:
-        # 灰度图像
-        plt.imshow(matrix, cmap='gray', vmin=0, vmax=255)
-    elif matrix.ndim == 3 and matrix.shape[2] in [3, 4]:
-        # 彩色图像 (RGB or RGBA)
-        if matrix.dtype != np.uint8:
-            # 如果不是 uint8 类型，则假设值在 [0, 1] 范围内并转换为 [0, 255]
-            matrix = (matrix * 255).astype(np.uint8)
-        plt.imshow(matrix)
-    else:
-        raise ValueError("Unsupported image format. Input should be a 2D gray-scale or 3D RGB/RGBA image.")
-
-    # 关闭坐标轴
-    plt.axis('off')
+    ax = plt.gca()
+    im = ax.imshow(matrix, aspect='auto', cmap='viridis')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.invert_yaxis()
+    NX = int(matrix.shape[1] / 10)
+    NY = int(matrix.shape[0] / 10)
+    NX = NY = max(1, min(NX, NY))
+    ax.set_xticks(np.arange(0, matrix.shape[1], NX))  # 每 10 列一个刻度
+    ax.set_yticks(np.arange(0, matrix.shape[0], NY))  # 每 10 行一个刻度
+    cb = plt.colorbar(im, ax=ax)
+    cb.set_label('Intensity')  # 设置 colorbar 标签
     
     # 显示图像
     plt.show()
