@@ -169,11 +169,10 @@ np::ndarray create_ndarray_from_vector(const std::vector<T, TAlloc>& data, std::
 }
 
 struct py_plot {
-    static std::filesystem::path get_default_visualizer_dir()
+    static std::filesystem::path& get_default_visualizer_dir()
     {
-        std::filesystem::path current_path(__FILE__);
-        auto s= current_path.parent_path();
-        return "./";
+        static std::filesystem::path path = ".";
+        return path;
     }
     py_loader loader;
     pyobject_wrapper visulizer;

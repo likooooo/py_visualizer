@@ -31,6 +31,12 @@ add_custom_command(TARGET py_visualizer POST_BUILD
     $<TARGET_FILE_DIR:py_visualizer>
 )
 
+install(EXPORT CudaTargets
+    FILE py_visualizerTargets.cmake
+    NAMESPACE py_visualizer::
+    DESTINATION cmake
+)
+
 install(TARGETS py_gui py_visualizer EXPORT CudaTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
@@ -38,8 +44,12 @@ install(TARGETS py_gui py_visualizer EXPORT CudaTargets
 )
 install(FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/py_helper.hpp 
-    ${CMAKE_CURRENT_SOURCE_DIR}/visualizer.py
     DESTINATION include)
+
+install(FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/visualizer.py
+    DESTINATION bin)
+    
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/py_visualizerConfig.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/py_visualizer-config-version.cmake"
