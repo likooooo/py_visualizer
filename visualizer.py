@@ -1,15 +1,52 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
+from matplotlib.widgets import TextBox, Button
+import os
 
+def add_input_widget(im):
+    fig = im.figure  # Get the figure from the image
+    # Ensure the axes for widgets don't overlap with the image
+    ax_textbox = fig.add_axes([0.1, 0.01, 0.8, 0.05])  # Position for the TextBox
+    ax_button = fig.add_axes([0.9, 0.01, 0.1, 0.05])  # Position for the Button
 
-# Global variables to hold state
+    # TextBox widget for inputting file path
+    text_box = TextBox(ax_textbox, 'Enter file path: ', initial='')
+
+    # Button widget for submitting the path
+    button = Button(ax_button, 'Load File')
+
+    # Define the button callback function to load and display the image
+    def on_button_click(event):
+        file_path = text_box.text
+        if os.path.exists(file_path):
+            try:
+                # Load the new image data (you can replace this with any image reading method)
+                data = np.load(file_path)  # Assuming the file is a numpy array (.npy)
+                im.set_data(data)
+                fig.canvas.draw()  # Redraw the image with the new data
+            except Exception as e:
+                print(f"Error loading file: {e}")
+        else:
+            print(f"Invalid file path: {file_path}")
+
+    # Connect the button's click event to the function
+    button.on_clicked(on_button_click)
+
+    # Optional: you can also link the textbox value to some other behavior, like validation
+    # For example, display the entered path when the user modifies the text box
+    def on_text_change(text):
+        print(f"Path entered: {text}")
+        
+    text_box.on_text_change(on_text_change)
+
+# display image in intercation mode
 im = None
 ax = None
 cb = None
 text = None
 frame_index = 0
-
+update_count = 0
 def try_init(data):
     global im, ax, cb, text
     if ax is not None:
@@ -32,8 +69,7 @@ def try_init(data):
                horizontalalignment='center',
                verticalalignment='top',
                bbox=dict(facecolor='red', alpha=0.5))
-
-update_count = 0
+    add_input_widget(im)
 def update(data, sync_mode=False):
     global frame_index, update_count, text
     update_count = update_count + 1
@@ -68,6 +104,7 @@ def update(data, sync_mode=False):
 def close_plot():
     plt.close()
 
+# regist event
 mouse_pressed = False
 start_x, start_y = None, None
 move_x, move_y= None, None
@@ -114,14 +151,13 @@ def regist_click_and_motion(click = None, motion = None):
         
     ax.figure.canvas.mpl_connect('button_press_event', on_button_press)
     ax.figure.canvas.mpl_connect('motion_notify_event', on_motion)
-    ax.figure.canvas.mpl_connect('button_release_event', on_button_release)
-
-    
+    ax.figure.canvas.mpl_connect('button_release_event', on_button_release) 
 def regist_on_close(callback_on_close):
     cid = ax.figure.canvas.mpl_connect('close_event', callback_on_close)
 def regist_mouse_event(click, motion):
     regist_click_and_motion(click, motion)
 
+# display image
 def display_image(matrix):
     """
     显示一个 NumPy 矩阵作为图像。
@@ -143,6 +179,91 @@ def display_image(matrix):
     ax.set_yticks(np.arange(0, matrix.shape[0], NY))  # 每 10 行一个刻度
     cb = plt.colorbar(im, ax=ax)
     cb.set_label('Intensity')  # 设置 colorbar 标签
+    add_input_widget(im)
     
     # 显示图像
     plt.show()
+
+if __name__ == "__main__":
+    def load_image_from_cmd():
+        import argparse
+        parser = argparse.ArgumentParser(description="image visualizer")
+        parser.add_argument("--path", type=str, required=True)
+        parser.add_argument("--shape",type=str, nargs="+", default= [])
+        parser.add_argument("--type", type=str, default="")
+        args = parser.parse_args() 
+        assert(os.path.exists(args.path))
+
+        def to_np_type(s):
+            dtype_map = {
+                'c': np.complex64,
+                'z': np.complex128,
+                'f': np.float32,
+                'd': np.float64,
+                'n': np.int32,
+                '' : np.float32
+            }
+            return dtype_map[s]
+        def auto_args_if_need(args):
+            default_type = {
+                4 : 'f',
+                8 : 'c',
+                16: 'z'
+            }
+            import math
+            stats = os.stat(args.path)
+            n = stats.st_size
+            # auto shape
+            if '' != args.type and 0 == len(args.shape):
+                n1 = int(n / np.dtype(to_np_type(args.type)).itemsize)
+                # single image
+                w = int(math.sqrt(n1))
+                if w * w == n1:
+                    args.shape = [w, w]
+                    return
+                # image stack
+                # n = a * w * h
+                for a in range(2, 16):
+                    if 0 == n1 % a:
+                        n1 = int(n1/a)
+                        w = int(math.sqrt(n1))
+                        if w * w == n1:
+                            args.shape = [w *a, w]
+                            return
+                raise RuntimeError("declshape failed")
+            # auto type
+            if '' == args.type and 0 != len(args.shape):
+                i = int(n / np.prod(args.shape))
+                assert(i * np.prod(args.shape) == n)
+                if i in default_type:
+                    args.type = default_type[i]
+                    return
+                raise RuntimeError("decltype failed")
+            # auto shape & type
+            if '' == args.type and 0 == len(args.shape):
+                # single image 
+                # n = t * w * h
+                for t in default_type.keys():
+                    n1 = int(n/t)
+                    w = int(math.sqrt(n1))
+                    if w * w == n1:
+                        args.type = default_type[t]
+                        args.shape = [w, w]
+                        return
+                raise RuntimeError("decltype&shape failed")
+        auto_args_if_need(args)
+        def print_image_info(args):
+            print("* image visualizer")
+            print("    path =", args.path)
+            print("    shape=", args.shape)
+            print("    type =", args.type)
+        print_image_info(args)
+        data = np.fromfile(args.path, dtype=to_np_type(args.type))
+        data = np.reshape(data, args.shape)
+        if args.type in ['c', 'z']:
+            print("    origin=")
+            print(data)
+            data = np.abs(data)
+        return data
+    display_image(load_image_from_cmd())
+        
