@@ -267,3 +267,16 @@ if __name__ == "__main__":
         return data
     display_image(load_image_from_cmd())
         
+
+    # 显示图像
+    plt.show()
+
+def plot_surface(x, y, matrix):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    surf = ax.plot_surface(x, y, matrix, cmap='viridis')
+    fig.colorbar(surf)
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$y$')
+    ax.set_zlabel('$z$')
+    plt.show()

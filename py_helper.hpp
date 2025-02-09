@@ -208,6 +208,8 @@ struct py_plot {
     }
 };
 
+using pycallback_update_frame = decltype(py_plot::create_callback_simulation_fram_done(py::object()));
+
 inline void overload_click(int type, int flag, float dx, float dy) {
     const std::array<const char*, 4> btn_type{ "", "left", "mid", "right" };
     printf("%s  %s button at (%f, %f)\n", 0 == flag ? "press" : "release", btn_type.at(type), dx, dy);
