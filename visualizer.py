@@ -5,6 +5,7 @@ from matplotlib.widgets import TextBox, Button
 import os
 
 def add_input_widget(im):
+    return
     fig = im.figure  # Get the figure from the image
     # Ensure the axes for widgets don't overlap with the image
     ax_textbox = fig.add_axes([0.1, 0.01, 0.8, 0.05])  # Position for the TextBox
