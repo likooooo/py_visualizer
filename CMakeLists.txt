@@ -46,12 +46,19 @@ install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/py_helper.hpp 
     DESTINATION include)
 
+set(PY_VISUALIZER_FILES ${CMAKE_INSTALL_PREFIX}/bin/visualizer.py)
 install(FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/visualizer.py
     DESTINATION bin)
-    
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/py_visualizer_files.cmake.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/py_visualizer_files.cmake
+)
+
 install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/py_visualizerConfig.cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/py_visualizer-config-version.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/py_visualizerConfig.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/py_visualizer_files.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/py_visualizer-config-version.cmake"
     DESTINATION cmake
 )

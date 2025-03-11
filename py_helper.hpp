@@ -1,3 +1,4 @@
+#pragma once
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
 #include <filesystem>
