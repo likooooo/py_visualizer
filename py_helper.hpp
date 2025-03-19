@@ -216,6 +216,12 @@ inline void overload_click(int type, int flag, float dx, float dy) {
     printf("%s  %s button at (%f, %f)\n", 0 == flag ? "press" : "release", btn_type.at(type), dx, dy);
 }
 
-template<class TVec> inline void imshow(const TVec& rowdata, const std::vector<int>& dim){
-    catch_py_error(py_plot().visulizer["display_image"](create_ndarray_from_vector(rowdata, dim)));
+// template<class TVec> inline void imshow(const TVec& rowdata, const std::vector<int>& dim){
+//     catch_py_error(py_plot().visulizer["display_image"](create_ndarray_from_vector(rowdata, dim)));
+// }
+template<class TVec> inline void imshow(const TVec& rowdata, const std::vector<size_t>& dim){
+    std::vector<int> d(dim.size());
+    std::transform(dim.begin(), dim.end(), d.begin(), [](size_t n){return int(n);});
+    catch_py_error(py_plot().visulizer["display_image"](create_ndarray_from_vector(rowdata, d)));
 }
+
