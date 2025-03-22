@@ -55,7 +55,7 @@ def try_init(data):
     plt.ion()
     ax = plt.gca()
     shape = data.shape
-    if len(shape) == 1:
+    if len(shape) == 2 and 1 == shape[1]:
         [im,] = ax.plot(range(shape[0]), data)
         ax.set_ylim([np.min(data), np.max(data)])
     else:
@@ -158,31 +158,71 @@ def regist_on_close(callback_on_close):
 def regist_mouse_event(click, motion):
     regist_click_and_motion(click, motion)
 
-# display image
+# # display image
+# def display_image(matrix):
+#     """
+#     显示一个 NumPy 矩阵作为图像。
+    
+#     参数:
+#         matrix (numpy.ndarray): 输入的图像矩阵，可以是灰度图像 (2D) 或彩色图像 (3D)。
+#     """
+#     if not isinstance(matrix, np.ndarray):
+#         raise TypeError("Input must be a NumPy array.")
+
+#     ax = plt.gca()
+#     im = ax.imshow(matrix, aspect='auto', cmap='viridis')
+#     ax.xaxis.set_ticks_position('bottom')
+#     ax.invert_yaxis()
+#     NX = int(matrix.shape[1] / 10)
+#     NY = int(matrix.shape[0] / 10)
+#     NX = NY = max(1, min(NX, NY))
+#     ax.set_xticks(np.arange(0, matrix.shape[1], NX))  # 每 10 列一个刻度
+#     ax.set_yticks(np.arange(0, matrix.shape[0], NY))  # 每 10 行一个刻度
+#     cb = plt.colorbar(im, ax=ax)
+#     cb.set_label('Intensity')  # 设置 colorbar 标签
+#     add_input_widget(im)
+    
+#     # 显示图像
+#     plt.show()
 def display_image(matrix):
     """
-    显示一个 NumPy 矩阵作为图像。
+    显示一个 NumPy 矩阵作为图像或曲线。
     
     参数:
-        matrix (numpy.ndarray): 输入的图像矩阵，可以是灰度图像 (2D) 或彩色图像 (3D)。
+        matrix (numpy.ndarray): 输入的矩阵，可以是灰度图像 (2D)、彩色图像 (3D) 或Nx1/一维数据。
     """
     if not isinstance(matrix, np.ndarray):
         raise TypeError("Input must be a NumPy array.")
 
-    ax = plt.gca()
-    im = ax.imshow(matrix, aspect='auto', cmap='viridis')
-    ax.xaxis.set_ticks_position('bottom')
-    ax.invert_yaxis()
-    NX = int(matrix.shape[1] / 10)
-    NY = int(matrix.shape[0] / 10)
-    NX = NY = max(1, min(NX, NY))
-    ax.set_xticks(np.arange(0, matrix.shape[1], NX))  # 每 10 列一个刻度
-    ax.set_yticks(np.arange(0, matrix.shape[0], NY))  # 每 10 行一个刻度
-    cb = plt.colorbar(im, ax=ax)
-    cb.set_label('Intensity')  # 设置 colorbar 标签
-    add_input_widget(im)
-    
-    # 显示图像
+    plt.figure()  # 创建新图表
+
+    # 检查是否为Nx1或一维数据
+    if matrix.ndim == 1 or (matrix.ndim == 2 and matrix.shape[1] == 1):
+        # 绘制曲线
+        data = matrix.squeeze()  # 确保数据为一维
+        plt.plot(data)
+        plt.xlabel('Index')
+        plt.ylabel('Value')
+        plt.title('Curve Plot')
+    else:
+        # 显示图像
+        ax = plt.gca()
+        im = ax.imshow(matrix, aspect='auto', cmap='viridis')
+        ax.xaxis.set_ticks_position('bottom')
+        ax.invert_yaxis()  # 图像坐标系反向
+        
+        # 动态计算刻度间隔（保持原逻辑）
+        NX = int(matrix.shape[1] / 10)
+        NY = int(matrix.shape[0] / 10)
+        interval = max(1, min(NX, NY))  # 确保最小间隔为1
+        ax.set_xticks(np.arange(0, matrix.shape[1], interval))
+        ax.set_yticks(np.arange(0, matrix.shape[0], interval))
+        
+        # 添加颜色条
+        cb = plt.colorbar(im, ax=ax)
+        cb.set_label('Intensity')
+        add_input_widget(im)  # 保持原有交互功能
+
     plt.show()
 
 if __name__ == "__main__":
