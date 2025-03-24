@@ -143,7 +143,13 @@ public:
     static void init(){
         if(get_py_inter().is_py_running) return;
         get_py_inter() = py_lifetime(true);
-        init_stl_converters<std::vector<int>>();
+        init_stl_converters<
+            std::vector<int>, std::vector<size_t>, 
+            std::vector<float>, std::vector<double>,
+            std::vector<std::string>,
+            std::vector<std::vector<float>>,
+            std::vector<std::vector<double>>
+        >();
     }
     static void dispose(){
         get_py_inter() = py_lifetime(false);
@@ -216,12 +222,25 @@ inline void overload_click(int type, int flag, float dx, float dy) {
     printf("%s  %s button at (%f, %f)\n", 0 == flag ? "press" : "release", btn_type.at(type), dx, dy);
 }
 
-// template<class TVec> inline void imshow(const TVec& rowdata, const std::vector<int>& dim){
-//     catch_py_error(py_plot().visulizer["display_image"](create_ndarray_from_vector(rowdata, dim)));
-// }
 template<class TVec> inline void imshow(const TVec& rowdata, const std::vector<size_t>& dim){
     std::vector<int> d(dim.size());
     std::transform(dim.begin(), dim.end(), d.begin(), [](size_t n){return int(n);});
     catch_py_error(py_plot().visulizer["display_image"](create_ndarray_from_vector(rowdata, d)));
 }
 
+template<class T> inline void plot_curves(const std::vector<std::vector<T>>& rowdata, 
+    const std::vector<float>& start_x,
+    const std::vector<float>& step_x,
+    const std::vector<std::string>& legends,
+    const std::vector<std::string>& plot_dot_types,
+    const float sample_rate = 1.0
+){
+    catch_py_error(py_plot().visulizer["plot_curves"](
+        py::list(rowdata),
+        py::list(start_x),
+        py::list(step_x),
+        py::list(legends),
+        py::list(plot_dot_types),
+        sample_rate
+    ));
+}
