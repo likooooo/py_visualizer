@@ -19,11 +19,13 @@ find_package(PythonLibs 3 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
 
 add_executable(py_gui gui.cpp)
-add_library(py_visualizer gui.cpp)
+add_library(py_visualizer SHARED py_plugin.cpp)
 
 # 设置链接库
-target_link_libraries(py_gui PUBLIC ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} )
 target_link_libraries(py_visualizer PUBLIC ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} )
+# target_link_libraries(py_gui PUBLIC ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} )
+target_link_libraries(py_gui PUBLIC py_visualizer)
+
 
 add_custom_command(TARGET py_visualizer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -44,6 +46,7 @@ install(TARGETS py_gui py_visualizer EXPORT CudaTargets
 )
 install(FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/py_helper.hpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/py_plugin.h
     DESTINATION include)
 
 set(PY_VISUALIZER_FILES ${CMAKE_INSTALL_PREFIX}/bin/visualizer.py)

@@ -7,5 +7,4 @@ endif()
 
 # Mark the package as found.
 set(py_visualizer_FOUND TRUE)
-list(APPEND tools cuda_device_info.cpp)
 set(PY_VISUALIZER_FILES @PY_VISUALIZER_FILES@)

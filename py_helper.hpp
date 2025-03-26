@@ -1,18 +1,5 @@
 #pragma once
-#include <boost/python.hpp>
-#include <boost/python/numpy.hpp>
-#include <filesystem>
-#include <cassert>
-#include <iostream>
-#include <map>
-#include <algorithm>
-#include <cstring>
-// #include "common.h"
-
-#define catch_py_error(code) do{try{code;}catch (py::error_already_set) {PyErr_Print();exit(1);}}while(0)
-
-namespace py = boost::python;
-namespace np = boost::python::numpy;
+#include "py_plugin.h"
 
 inline py::list add_path_to_sys_path(const char* path) {
     py::object py_path;
@@ -119,41 +106,6 @@ struct py_loader final
         if (modules.end() == it) throw std::range_error((std::ostringstream() << "can't find module " << module_name).str());
         return it->second;
     }
-private:
-    struct py_lifetime{
-        bool is_py_running;
-        py_lifetime(bool init = false) : is_py_running(init){
-            if(!init) return;
-            Py_Initialize();
-            np::initialize();
-        }
-        ~py_lifetime(){
-            if(!is_py_running) return;
-            Py_Finalize();
-        }
-        void operator = (py_lifetime&& py) {
-            std::swap(is_py_running, py.is_py_running);
-        }
-    };
-    static py_lifetime& get_py_inter(){
-        static py_lifetime py(false); 
-        return py;
-    };
-public:
-    static void init(){
-        if(get_py_inter().is_py_running) return;
-        get_py_inter() = py_lifetime(true);
-        init_stl_converters<
-            std::vector<int>, std::vector<size_t>, 
-            std::vector<float>, std::vector<double>,
-            std::vector<std::string>,
-            std::vector<std::vector<float>>,
-            std::vector<std::vector<double>>
-        >();
-    }
-    static void dispose(){
-        get_py_inter() = py_lifetime(false);
-    }
 };
 
 template<class T, class TAlloc> inline 
@@ -175,17 +127,17 @@ np::ndarray create_ndarray_from_vector(const std::vector<T, TAlloc>& data, std::
         );
 }
 
-struct py_plot {
+[[deprecated("use py_plugin instead")]]  struct py_plot {
     static std::filesystem::path& get_default_visualizer_dir()
     {
-        static std::filesystem::path path = ".";
+        static std::filesystem::path path = "/usr/local/bin";
         return path;
     }
     py_loader loader;
     pyobject_wrapper visulizer;
     bool event_init = false;
-    //std::function<void(double, double, double, double)>
     py_plot(std::filesystem::path path = get_default_visualizer_dir()) : loader(path) {
+        // std::cout <<"path=" << path<<std::endl;
         visulizer = loader["visualizer"];
     }
     static bool& get_cancel_token() {
@@ -193,7 +145,7 @@ struct py_plot {
         return cancel;
     }
     static bool on_plot_close(py::object event) {
-        printf("gui closing...\n");
+        // printf("gui closing...\n");
         get_cancel_token() = true;
         return false;
     }

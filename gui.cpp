@@ -20,7 +20,7 @@ void test_plot_curve()
 
 int main() 
 {
-    py_loader::init();
-    // test_frame_update();
+    py_engine::init();
     test_plot_curve();
+    test_frame_update();
 }
