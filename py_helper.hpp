@@ -1,5 +1,6 @@
 #pragma once
 #include "py_plugin.h"
+#include <type_traist_notebook/type_traist.hpp>
 
 inline py::list add_path_to_sys_path(const char* path) {
     py::object py_path;
@@ -35,6 +36,10 @@ struct pyobject_wrapper : public py::object {
     inline pyobject_wrapper operator [](const char* key) const { return pyobject_wrapper(py::object::attr(key)); }
 };
 
+template <typename, typename = void>struct has_resize : std::false_type {};
+template <typename T> struct has_resize<T, std::void_t<decltype(std::declval<T>().resize(std::declval<typename T::size_type>()))>> : std::true_type {};
+template <typename T> constexpr bool has_resize_v = has_resize<T>::value;
+
 template<class TContainer> struct stl_container_converter {
     static PyObject* convert(const TContainer& vec) {
         py::list list;
@@ -48,7 +53,13 @@ template<class TContainer> struct stl_container_converter {
             py::handle<> handle(py::borrowed(obj));
             py::list list(handle);
             int n = len(list);
-            vec.resize(n);// TODO : resize if T is vector
+            if constexpr(has_resize_v<TContainer>){
+                vec.resize(n);
+            }else{
+                if(n > vec.size()){
+                    throw std::out_of_range(std::string(__PRETTY_FUNCTION__) + " (require size, acturay size)=" + to_string(std::make_tuple(n, vec.size())));
+                }
+            }
             for (int i = 0; i < n; i++) vec[i] = py::extract<typename TContainer::value_type>(list[i]);
         }
         return p;

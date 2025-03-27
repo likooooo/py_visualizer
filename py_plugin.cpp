@@ -1,5 +1,7 @@
 #include "py_plugin.h"
 #include "py_helper.hpp"
+#include "py_exception.hpp"
+#include <ios>          // std::ios_base::failure
 
 py_engine::py_engine(bool init) : is_py_running(init){
     if(!init) return;
@@ -20,12 +22,21 @@ py_engine& py_engine::get_py_inter(){
 void py_engine::init(){
     if(get_py_inter().is_py_running) return;
     get_py_inter() = py_engine(true);
+    using namespace std;
     init_stl_converters<
-        std::vector<int>, std::vector<size_t>, 
-        std::vector<float>, std::vector<double>,
-        std::vector<std::string>,
-        std::vector<std::vector<float>>,
-        std::vector<std::vector<double>>
+        vector<int>, vector<size_t>, vector<float>, vector<double>, vector<complex<float>>, vector<complex<double>>,vector<string>,
+        vector<vector<float>>, vector<vector<double>>,
+
+        array<int, 2>, array<size_t, 2>,  array<float, 2>, array<double, 2>, array<complex<float>, 2>, array<complex<double>, 2>,
+        array<int, 3>, array<size_t, 3>,  array<float, 3>, array<double, 3>, array<complex<float>, 3>, array<complex<double>, 3>,
+        array<array<float, 2>, 2>, array<array<double, 2>, 2>
+    >();
+
+    // reference : https://en.cppreference.com/w/cpp/error/exception
+    init_exception_converters<
+        logic_error,   invalid_argument, domain_error,   length_error, out_of_range,
+        runtime_error, range_error,      overflow_error, underflow_error,
+        ios_base::failure
     >();
 }
 void py_engine::dispose(){

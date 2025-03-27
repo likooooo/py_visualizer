@@ -15,6 +15,7 @@ else()
     message(FATAL_ERROR "Boost not found")
 endif()
 
+find_package(type_traist_notebook REQUIRED)
 find_package(PythonLibs 3 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
 
