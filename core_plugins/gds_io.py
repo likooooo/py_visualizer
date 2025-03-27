@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import gdspy
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 def find_duplicates(points):
     """查找列表中的重复点及其索引。"""
@@ -64,12 +64,14 @@ def plot_gds(gds_file):
         color = layer_colors.get(color_id, "black")
         print(f"load layer={layer} with color={color}")
         for polygon in polygons:
-            outer, hole = extract_single_hole(polygon)
-            poly = plt.Polygon(outer, closed=True, edgecolor=color, fill=False, linewidth=0.5)
+            # outer, hole = extract_single_hole(polygon)
+            # poly = plt.Polygon(outer, closed=True, edgecolor=color, fill=False, linewidth=0.5)
+            # ax.add_patch(poly)
+            # if hole is not None:
+            #     poly = plt.Polygon(hole, closed=True, edgecolor=color, fill=False, linewidth=0.5)
+            #     ax.add_patch(poly)
+            poly = plt.Polygon(polygon, closed=True, edgecolor=color, fill=False, linewidth=0.5)
             ax.add_patch(poly)
-            if hole is not None:
-                poly = plt.Polygon(hole, closed=True, edgecolor=color, fill=False, linewidth=0.5)
-                ax.add_patch(poly)
         color_id = color_id + 1
 
     # 设置坐标轴和比例
@@ -89,4 +91,7 @@ def plot_gds(gds_file):
     plt.show()
 
 if __name__ == "__main__":
-    plot_gds("/mnt/c/Users/like/Desktop/gds/case9.gds")
+    plot_gds("/home/like/doc/YuWei/gds/gds/case10.gds")
+
+    for i in range(3):
+        plot_gds(f"/tmp/simulation/case10/{i}.gds")
