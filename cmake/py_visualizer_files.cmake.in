@@ -8,3 +8,4 @@ endif()
 # Mark the package as found.
 set(py_visualizer_FOUND TRUE)
 set(PY_VISUALIZER_FILES @PY_VISUALIZER_FILES@)
+set(PY_PY_PLUGINS_DIR @PY_PY_PLUGINS_DIR@)

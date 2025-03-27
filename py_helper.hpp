@@ -2,14 +2,6 @@
 #include "py_plugin.h"
 #include <type_traist_notebook/type_traist.hpp>
 
-inline py::list add_path_to_sys_path(const char* path) {
-    py::object py_path;
-    catch_py_error(py_path = py::import("sys"));
-    catch_py_error(py_path = py_path.attr("path"));
-    py::list sys_path = py::extract<py::list>(py_path);
-    sys_path.append(path);
-    return sys_path;
-}
 template<class T> inline 
 std::ostream& py_list_to_string (std::ostream& strean, const py::list& py_list,const char* separator = "\n") {
     int list_count = len(py_list);
@@ -30,12 +22,6 @@ std::ostream& py_list_to_string (std::ostream& strean, const py::list& py_list,c
     }
     return strean;
 }
-struct pyobject_wrapper : public py::object {
-    pyobject_wrapper() = default;
-    explicit pyobject_wrapper(const py::object& obj) :py::object(obj){}
-    inline pyobject_wrapper operator [](const char* key) const { return pyobject_wrapper(py::object::attr(key)); }
-};
-
 template <typename, typename = void>struct has_resize : std::false_type {};
 template <typename T> struct has_resize<T, std::void_t<decltype(std::declval<T>().resize(std::declval<typename T::size_type>()))>> : std::true_type {};
 template <typename T> constexpr bool has_resize_v = has_resize<T>::value;
@@ -79,45 +65,6 @@ void init_stl_converters() {
         init_stl_converters<TRest...>();
     }
 }
-
-struct py_loader final
-{
-    using module_map = std::map<std::string, pyobject_wrapper>;
-    module_map modules;
-    py_loader(const std::filesystem::path& path = "__main__"){
-        reset_current(path);
-    }
-    void reset_current(const std::filesystem::path& path){
-        modules.clear();
-        append_import_to_current(path, modules);
-    }
-    void append_import_to_current(const std::filesystem::path& path, module_map& modules) const {
-        namespace fs = std::filesystem;
-        if (fs::is_directory(path)) {
-            add_path_to_sys_path(path.c_str());
-            for (const auto& entry : fs::directory_iterator(path)) {
-                this->append_import_to_current(entry.path(), modules);
-            }
-        } 
-        else {
-            constexpr std::array<const char*, 2> suffix{".py", ".pyd"};
-            const std::string suf = path.extension();
-            if (suffix.end() == std::find_if(suffix.begin(), suffix.end(), [&suf](const char* a){ return 0 == std::strcmp(a, suf.c_str()); }))
-                return;
-            std::string file = path.stem().string();
-            catch_py_error(
-                py::object obj = py::import(file.c_str());
-                if (obj.is_none()) throw std::range_error((std::ostringstream() << "import module failed in " << file).str());
-                modules[file] = pyobject_wrapper(obj);
-            );
-        }
-    }
-    pyobject_wrapper operator[](const std::string& module_name) const {
-        auto it = modules.find(module_name);
-        if (modules.end() == it) throw std::range_error((std::ostringstream() << "can't find module " << module_name).str());
-        return it->second;
-    }
-};
 
 template<class T, class TAlloc> inline 
 np::ndarray create_ndarray_from_vector(const std::vector<T, TAlloc>& data, std::vector<int> shape) {

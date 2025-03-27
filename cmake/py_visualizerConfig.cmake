@@ -50,13 +50,20 @@ set(py_visualizer_FOUND TRUE)
 
 
 function(copy_visualizer_files TARGET_NAME Dir)
-    get_filename_component(TEST_WLE ${PY_VISUALIZER_FILES} NAME_WLE)
-
+    get_filename_component(TEST_WLE  ${PY_VISUALIZER_FILES} NAME)
     add_custom_command(
         TARGET ${TARGET_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${PY_VISUALIZER_FILES}
                 "${Dir}/${TEST_WLE}"
         COMMENT "Copying ${TEST_WLE} to ${Dir}/${TEST_WLE}"
+    )
+    get_filename_component(DIR_NAME "${PY_PY_PLUGINS_DIR}" NAME)
+    add_custom_command(
+        TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+                "${PY_PY_PLUGINS_DIR}"
+                "${Dir}"
+        COMMENT "Copying directory ${DIR_NAME} to ${Dir}"
     )
 endfunction()

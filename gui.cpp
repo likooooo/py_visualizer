@@ -20,7 +20,9 @@ void test_plot_curve()
 
 int main() 
 {
-    py_engine::init();
-    test_plot_curve();
-    test_frame_update();
+    catch_py_error(py_engine::init());
+    py_plugin::call<void>("image_io", "test");
+    py_plugin::call<void>("gds_io", "plot_gds", "/home/like/doc/Documents/YuWei/gds/gds/case11.gds");
+    catch_py_error(test_plot_curve());
+    catch_py_error(test_frame_update());
 }

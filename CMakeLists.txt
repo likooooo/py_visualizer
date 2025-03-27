@@ -51,8 +51,12 @@ install(FILES
     DESTINATION include)
 
 set(PY_VISUALIZER_FILES ${CMAKE_INSTALL_PREFIX}/bin/visualizer.py)
+set(PY_PY_PLUGINS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/core_plugins)
 install(FILES 
-    ${CMAKE_CURRENT_SOURCE_DIR}/visualizer.py
+    ${PY_VISUALIZER_FILES}
+    DESTINATION bin)
+install(DIRECTORY 
+    ${PY_PY_PLUGINS_DIR}
     DESTINATION bin)
 
 configure_file(

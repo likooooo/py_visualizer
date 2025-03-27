@@ -31,7 +31,10 @@ void py_engine::init(){
         array<int, 3>, array<size_t, 3>,  array<float, 3>, array<double, 3>, array<complex<float>, 3>, array<complex<double>, 3>,
         array<array<float, 2>, 2>, array<array<double, 2>, 2>
     >();
-
+}
+void py_engine::init_exception_for_pycall()
+{
+    using namespace std;
     // reference : https://en.cppreference.com/w/cpp/error/exception
     init_exception_converters<
         logic_error,   invalid_argument, domain_error,   length_error, out_of_range,
@@ -42,8 +45,18 @@ void py_engine::init(){
 void py_engine::dispose(){
     get_py_inter() = py_engine(false);
 }
-py_plugin& py_plugin::ref()
+
+
+std::vector<std::string> py_plugin::paths{"core_plugins"};
+py_loader& py_plugin::ref()
 {
-    static py_plugin plugin;
+    static std::vector<std::string> paths;
+    static py_loader plugin;
+    if(paths != py_plugin::paths && 0 < py_plugin::paths.size() )
+    {
+        paths = py_plugin::paths;
+        plugin = py_loader(paths.at(0));
+        for(size_t i = 1; i < paths.size(); i++) plugin.append_import_to_current(paths.at(i));
+    }
     return plugin;
 }
