@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import gdspy
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -59,10 +60,15 @@ def plot_gds(gds_file):
     }
 
     # 绘制每个多边形
+    # history = list()
     color_id = 0
     for (layer, datatype), polygons in all_polygons.items():
         color = layer_colors.get(color_id, "black")
         print(f"load layer={layer} with color={color}")
+        # n = len(polygons)
+        # if n:
+        #     history.append(layer)
+        #     print(f"layer={layer}, polys={n}")
         for polygon in polygons:
             # outer, hole = extract_single_hole(polygon)
             # poly = plt.Polygon(outer, closed=True, edgecolor=color, fill=False, linewidth=0.5)
@@ -73,7 +79,7 @@ def plot_gds(gds_file):
             poly = plt.Polygon(polygon, closed=True, edgecolor=color, fill=False, linewidth=0.5)
             ax.add_patch(poly)
         color_id = color_id + 1
-
+    # print(history)
     # 设置坐标轴和比例
     ax.autoscale()
     plt.axis("equal")  # 保持纵横比一致
@@ -91,7 +97,16 @@ def plot_gds(gds_file):
     plt.show()
 
 if __name__ == "__main__":
-    plot_gds("/home/like/doc/YuWei/gds/gds/case10.gds")
-
-    for i in range(3):
-        plot_gds(f"/tmp/simulation/case10/{i}.gds")
+    # 创建命令行解析器
+    parser = argparse.ArgumentParser(
+        description='GDSII文件图层可视化工具',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        'gds_file',
+        type=str,
+        default = "/home/like/doc/YuWei/gds/gds/case10.gds",
+        help='输入的GDSII文件路径'
+    )
+    args = parser.parse_args()
+    plot_gds(args.gds_file)

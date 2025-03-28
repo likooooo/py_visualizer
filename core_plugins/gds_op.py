@@ -7,6 +7,15 @@ import numpy as np
 from params_io import *
 from typing import List, Tuple
 
+import warnings
+# 标记整个模块为废弃
+warnings.warn(
+    "此模块已废弃, 请使用 klayout_op 替代",
+    DeprecationWarning,
+    stacklevel=2  # 确保警告指向调用方而非本文件
+)
+
+
 def layer_slice(cell, layer, roi : list) -> np.ndarray: # shpae=(n,2)
     """
     按照 ROI 对 layer 进行切片。
@@ -104,6 +113,9 @@ def clip_layers(gds_file:str, clip_dir:str,layer_id:int, start_points : list[tup
     for sx, sy in start_points:
         rectangle = gdspy.Rectangle((sx, sy), (sx + xsize, sy + ysize), layer=-1)
         sliced_polygons = gdspy.boolean(polygons, rectangle, 'and', layer=layer_id)
+        if None is sliced_polygons:
+            print(f"empty clip from {sx, sy}")
+            continue
         result_cell = gdspy.Cell(f'clip{n}')
         result_cell.add(sliced_polygons)
         temp_lib = gdspy.GdsLibrary()
@@ -124,6 +136,14 @@ def parse_shape(s: str) -> Tuple[float, float]:
     """解析形状字符串，格式为 'width,height'"""
     return tuple(map(float, s.split(',')))
 
+
+def subclip_workdir(gds_file:str):
+    # create dir to save sub-clip
+    clip_dir = os.path.join(tempfile.gettempdir(), "simulation")
+    clip_dir = os.path.join(clip_dir, os.path.splitext(os.path.basename(gds_file))[0])
+    print(f"    subclip workdir is {clip_dir}")
+    assert(0 == os.system(f"mkdir -p {clip_dir}"))
+    return clip_dir
 def main():
     # 创建命令行解析器
     parser = argparse.ArgumentParser(
@@ -177,16 +197,8 @@ def main():
     except ValueError as e:
         parser.error(f"参数格式错误: {e}")
     
-
-    def subclip_workdir():
-        # create dir to save sub-clip
-        clip_dir = os.path.join(tempfile.gettempdir(), "simulation")
-        clip_dir = os.path.join(clip_dir, os.path.splitext(os.path.basename(args.gds_file))[0])
-        print(f"    subclip workdir is {clip_dir}")
-        assert(0 == os.system(f"mkdir -p {clip_dir}"))
-        return clip_dir
     
-    workdir = subclip_workdir()
+    workdir = subclip_workdir(args.gds_file)
     key_params = (args.gds_file, args.layer_id, args.cell_index, shape, start_points)
     args_cache = os.path.join(workdir, "info.bin")
     if os.path.exists(args_cache) and args_from_file(filepath=args_cache) == key_params: 
