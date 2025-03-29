@@ -5,6 +5,7 @@ import numpy as np
 from params_io import *
 import klayout.db as pya
 from typing import List, Tuple
+import matplotlib.pyplot as plt
 
 # dbu 单位 : um/pixel
 def clip_layers(
@@ -30,7 +31,7 @@ def clip_layers(
     """
     # 创建输出目录
     os.makedirs(clip_dir, exist_ok=True)
-    
+    filename = os.path.splitext(os.path.basename(gds_file))[0]
     # 加载布局文件
     layout = pya.Layout()
     layout.read(gds_file)
@@ -89,7 +90,7 @@ def clip_layers(
             temp_layout.dbu = dbu
             
             # 创建结果单元格
-            result_cell = temp_layout.create_cell(f"clip_{n}")
+            result_cell = temp_layout.create_cell(f"{top_cell.name}")
             result_layer = temp_layout.layer(layer_id, 0)
             
             # 插入裁剪结果
@@ -97,7 +98,7 @@ def clip_layers(
                 result_cell.shapes(result_layer).insert(poly)
             
             # 写入文件
-            output_file = os.path.join(clip_dir, f"clip_{n}.gds")
+            output_file = os.path.join(clip_dir, f"{n}.gds")
             temp_layout.write(output_file)
             print(f"已保存: {output_file}")
         else:
@@ -105,7 +106,75 @@ def clip_layers(
 
     print("处理完成！")
 
-            
+
+
+def draw_oas_with_holes(oas_file, cell_name, layer_id, merge_tolerance=0):
+    """
+    读取 OAS 文件并绘制指定图层，处理图形内带孔的情况。
+
+    Args:
+        oas_file (str): OAS 文件路径。
+        cell_name (str): 要绘制的单元格名称，如果为 None，则绘制顶层单元格。
+        layer_id (int): 要绘制的图层编号。
+        merge_tolerance (float): 合并多边形的公差。
+    """
+
+    layout = pya.Layout()
+    layout.read(oas_file)
+
+    # 获取目标单元格
+    top_cell = layout.cell(cell_name) if cell_name else layout.top_cell()
+    if not top_cell:
+        raise ValueError("未找到指定单元格")
+
+    # 查找目标图层
+    layer_index = None
+    for li in layout.layer_indices():
+        info = layout.get_info(li)
+        if info.layer == layer_id and info.datatype == 0:
+            layer_index = li
+            break
+    if layer_index is None:
+        raise ValueError(f"未找到图层 {layer_id}/0")
+
+    shapes = top_cell.shapes(layer_index)
+
+    def plot_points(outer:np.array, color :str = 'r-'):
+        outer = outer * layout.dbu
+        x = [p[0] for p in outer]
+        y = [p[1] for p in outer]
+        x.append(x[0])  # 闭合
+        y.append(y[0])  # 闭合
+        plt.plot(x, y, color)
+
+    from hole_algo import get_outer_and_holes_from_poinst
+    for shape in shapes.each():
+        if shape.is_polygon():
+            poly = shape.polygon
+            # 绘制外轮廓
+            hull_points = np.array([[p.x, p.y] for p in poly.each_point_hull()])
+            outer, holes = get_outer_and_holes_from_poinst(hull_points)
+            plot_points(outer, 'r-')
+            for hole in holes:
+                plot_points(hole, 'r--')
+        elif shape.is_box():
+            box = shape.box
+            plot_points(np.array([
+                [box.left, box.bottom], 
+                [box.left, box.top], 
+                [box.right, box.top], 
+                [box.right, box.bottom], 
+                [box.left, box.bottom]
+            ]), 'b-')
+
+    plt.xlabel("X (um)")
+    plt.ylabel("Y (um)")
+    plt.title(f"Layer {layer_id} from {oas_file}")
+    plt.grid(True)
+    plt.axis('equal')  
+    plt.show()
+
+
 def parse_start_points(s: str) -> List[Tuple[float, float]]:
     """解析起始点字符串，格式为 'x1,y1;x2,y2;...'"""
     points = []
@@ -118,7 +187,6 @@ def parse_shape(s: str) -> Tuple[float, float]:
     """解析形状字符串，格式为 'width,height'"""
     return tuple(map(float, s.split(',')))
 
-
 def subclip_workdir(gds_file:str):
     # create dir to save sub-clip
     clip_dir = os.path.join(tempfile.gettempdir(), "simulation")
@@ -126,6 +194,7 @@ def subclip_workdir(gds_file:str):
     print(f"    subclip workdir is {clip_dir}")
     assert(0 == os.system(f"mkdir -p {clip_dir}"))
     return clip_dir
+
 def main():
     # 创建命令行解析器
     parser = argparse.ArgumentParser(
@@ -149,29 +218,34 @@ def main():
     parser.add_argument(
         '--start-points',
         type=str,
-        required=True,
+        default="",
         help='起始坐标点，格式为"x1,y1;x2,y2;..."',
         metavar='"X,Y;X,Y;..."'
     )
     parser.add_argument(
         '--shape',
         type=str,
-        required=True,
+        default= "1, 1",
         help='裁剪矩形形状，格式为"width,height"',
         metavar='W,H'
     )
     
     # 可选参数
     parser.add_argument(
-        '--cell-index',
-        type=int,
-        default=0,
-        help='要处理的单元索引（默认为0）'
+        '--cell-name',
+        type=str,
+        default="top",
+        help='要处理的单元名称'
     )
     
     # 解析参数
     args = parser.parse_args()
     
+    if "" == args.start_points:
+        print(f"    draw layer_{args.layer_id} in {args.gds_file}")
+        draw_oas_with_holes(args.gds_file, args.cell_name, args.layer_id)
+        return
+        
     # 转换参数格式
     try:
         start_points = parse_start_points(args.start_points)
@@ -179,9 +253,8 @@ def main():
     except ValueError as e:
         parser.error(f"参数格式错误: {e}")
     
-    
     workdir = subclip_workdir(args.gds_file)
-    key_params = (args.gds_file, args.layer_id, args.cell_index, shape, start_points)
+    key_params = (args.gds_file, args.layer_id, args.cell_name, shape, start_points)
     args_cache = os.path.join(workdir, "info.bin")
     if os.path.exists(args_cache) and args_from_file(filepath=args_cache) == key_params: 
         print("    subclip alread done")
@@ -192,15 +265,17 @@ def main():
         layer_id=args.layer_id,
         start_points=start_points,
         shape=shape,
-        cell_index=args.cell_index
+        cell_name=args.cell_name
     )
     args_to_file(key_params, filepath=args_cache)
 
 '''
-python klayout.py /home/like/doc/YuWei/gds/gds/case10.gds 8888 \
-    --start-points "-0.15,-0.15; 0,  -0.15; -0.075, -0.075" \
-    --shape "0.15, 0.15" \
-    --cell-index 0
+python klayout_op.py /home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas 300  \
+    --start-points "2307.5, 21765.5;2323.5, 21765.5;2339.5, 21765.5;2355.5, 21765.5" \
+    --shape "8, 8" \
+    --cell-name "JDV_M"
+
+python klayout_op.py /tmp/simulation/LG40_PC_CDU_Contour_Mask_L300/0.gds 300  --cell-name "JDV_M" 
 '''
 if __name__ == '__main__':
     main()

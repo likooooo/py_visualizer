@@ -83,9 +83,8 @@ if __name__ == '__main__':
     cutlines = gather_cutline(parsed_data, dbu_in_nm = 0.00025)
     clip_layers_by_cutline(
         "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas", 
-        cutlines, (7.5, 7.5), 300, "JDV_M"
+        cutlines, (8, 8), 300, "JDV_M"
     )
     points = get_midpoints_from_cutline(cutlines)
     print(cutlines)
     print(points)
-    
