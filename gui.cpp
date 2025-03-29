@@ -1,11 +1,12 @@
 #include "py_helper.hpp"
+#include <cstdlib>
 
 void test_frame_update()
 {
     int nx = 100, ny = 100;
     std::vector<float> vec(nx * ny);
     auto callback = py_plot::create_callback_simulation_fram_done(py::object(overload_click));
-    while (callback(create_ndarray_from_vector(vec, { nx, ny })));
+    for(size_t i = 0; i < 10; i++) callback(create_ndarray_from_vector(vec, { nx, ny }));
 }
 void test_plot_curve()
 {
@@ -20,9 +21,19 @@ void test_plot_curve()
 
 int main() 
 {
+    constexpr bool test_deprecated= false;
     catch_py_error(py_engine::init());
+    add_path_to_sys_path("core_plugins");
+    py_plugin::exec({"./core_plugins/gauge_io.py",
+        "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_7.ss",
+        "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas",
+        "JDV_M", "300", "--shape", "8, 8", "--verbose", "3"
+    });
     py_plugin::call<void>("image_io", "test");
-    py_plugin::call<void>("gds_io", "plot_gds", "/home/like/doc/Documents/YuWei/gds/gds/case11.gds");
     catch_py_error(test_plot_curve());
+
+    //== deprecated
+    if(!test_deprecated) return 0;
+    py_plugin::call<void>("gds_io", "plot_gds", "/home/like/doc/Documents/YuWei/gds/gds/case11.gds");
     catch_py_error(test_frame_update());
 }

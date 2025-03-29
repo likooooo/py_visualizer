@@ -98,4 +98,15 @@ struct py_plugin
             catch_py_error(ref()[module][func](std::forward<Args>(args)...));
         }
     } 
+    static void exec(const std::vector<std::string>& console_cmd)
+    {
+        py::list args(console_cmd);
+        py::object main_module, main_namespace;
+        catch_py_error(main_module = py::import("__main__"));
+        catch_py_error(main_namespace = main_module.attr("__dict__"));
+        auto old_args = py::import("sys").attr("argv");
+        py::import("sys").attr("argv") = py::list(console_cmd);
+        catch_py_error(py::exec_file(console_cmd.front().c_str(), main_namespace));
+        py::import("sys").attr("argv") = old_args;
+    } 
 };
