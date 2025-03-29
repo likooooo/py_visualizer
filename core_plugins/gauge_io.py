@@ -2,6 +2,7 @@
 import os
 import numpy as np
 from typing import List
+from klayout_op import *
 
 def parse_line(line):
     """解析单行数据并返回元组"""
@@ -28,7 +29,7 @@ def parse_line(line):
     
     return tuple(converted)
 
-def parse_file(file_path:str)->List:
+def read_gauge_file(file_path:str)->List:
     """读取文件并返回包含所有元组的列表
     
     Args:
@@ -66,7 +67,6 @@ def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
     ])
 
 def clip_layers_by_cutline(gds_path:str,cutlines : np.array, shape : tuple[float, float], layer_id:int, cell_name:str):
-    from klayout_op import clip_layers, subclip_workdir
     xsize, ysize = shape[0] / 2, shape[1] / 2
     start_points = np.column_stack([
         (cutlines[:, 0] + cutlines[:, 2]) / 2 - xsize, 
@@ -75,16 +75,75 @@ def clip_layers_by_cutline(gds_path:str,cutlines : np.array, shape : tuple[float
     start_points = [tuple(map(float, row)) for row in start_points]
     clip_layers(gds_path, subclip_workdir(gds_path), layer_id, start_points, shape, cell_name)
 
-    # 
-# 使用示例
+
+'''
+./gauge_io.py \
+    /home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_7.ss \
+    /home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas \
+    JDV_M 300 --shape "8, 8"
+
+./gauge_io.py \
+    /home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_7.ss \
+    /home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas \
+    JDV_M 300 --shape "8, 8" --verbose 3
+
+'''
 if __name__ == '__main__':
-    file_path = '/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_7.ss'  # 替换为你的实际文件路径
-    parsed_data = parse_file(file_path)
-    cutlines = gather_cutline(parsed_data, dbu_in_nm = 0.00025)
+    import argparse
+    # 创建命令行解析器
+    parser = argparse.ArgumentParser(
+        description='GDSII文件图层裁剪工具',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    # 必需参数
+    parser.add_argument(
+        'gauge_file',
+        type=str,
+        help='输入的GAUGE文件路径'
+    )
+    parser.add_argument(
+        'oas_file',
+        type=str,
+        help='输入的GDSII文件路径'
+    )
+    parser.add_argument(
+        'cell_name',
+        type=str,
+        help='要处理的单元名称'
+    )
+    parser.add_argument(
+        'layer_id',
+        type=int,
+        help='要裁剪的图层ID'
+    )
+    parser.add_argument(
+        '--shape',
+        type=parse_shape, #str,
+        default= "1, 1",
+        help='裁剪矩形形状，格式为"width,height"',
+        metavar='W,H'
+    )
+    parser.add_argument(
+        "--verbose", 
+        type=int,
+        default=-1,
+        help="cutline 可视化"
+    )
+
+    args = parser.parse_args()
+    parsed_data = read_gauge_file(args.gauge_file)
+    cutlines = gather_cutline(parsed_data, dbu_in_nm = get_dbu(args.oas_file))
     clip_layers_by_cutline(
-        "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas", 
-        cutlines, (8, 8), 300, "JDV_M"
+        args.oas_file, cutlines, args.shape, args.layer_id, args.cell_name
     )
     points = get_midpoints_from_cutline(cutlines)
-    print(cutlines)
-    print(points)
+    
+    for i in [[args.verbose], range(len(points))][int(-1 == args.verbose)]:
+        draw_oas_with_holes(os.path.join(subclip_workdir(args.oas_file), f"{i}.oas"), args.cell_name, args.layer_id)
+        x, y = [points[i][0]], [points[i][1]]
+        plt.plot(x, y, "y-o")
+        plt.plot(cutlines[i][0:3:2], cutlines[i][1:4:2], "r-")
+        plt.show()
+    
+    # print(cutlines)
+    # print(points)

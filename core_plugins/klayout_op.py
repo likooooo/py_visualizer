@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import argparse
 import tempfile
@@ -7,41 +8,20 @@ import klayout.db as pya
 from typing import List, Tuple
 import matplotlib.pyplot as plt
 
-# dbu 单位 : um/pixel
-def clip_layers(
-    gds_file: str, 
-    clip_dir: str, 
-    layer_id: int, 
-    start_points: list[tuple[float, float]], 
-    shape: tuple[float, float], 
-    cell_name: str = None,
-    merge_tolerance: float = 0.0
-):
-    """
-    高性能版图层裁剪（适用于大文件）
-    
-    参数:
-        gds_file: 输入GDS文件路径
-        clip_dir: 输出目录路径
-        layer_id: 目标图层号
-        start_points: 裁剪起始点列表 [(x1,y1), (x2,y2), ...]
-        shape: 裁剪区域尺寸 (width, height)
-        cell_name: 目标单元格名称（None表示第一个顶层单元格）
-        merge_tolerance: 多边形合并容差（单位：DBU）
-    """
-    # 创建输出目录
-    os.makedirs(clip_dir, exist_ok=True)
-    filename = os.path.splitext(os.path.basename(gds_file))[0]
-    # 加载布局文件
+def get_dbu(oas_file:str="",layout = None):
+    if layout is None:
+        assert(os.path.exists(oas_file))
+        layout = pya.Layout()
+        layout.read(oas_file)
+    return layout.dbu
+
+def load_shpaes(oas_file, cell_name, layer_id):
     layout = pya.Layout()
-    layout.read(gds_file)
-    dbu = layout.dbu
-    
+    layout.read(oas_file)
     # 获取目标单元格
     top_cell = layout.cell(cell_name) if cell_name else layout.top_cell()
     if not top_cell:
         raise ValueError("未找到指定单元格")
-    
     # 查找目标图层
     layer_index = None
     for li in layout.layer_indices():
@@ -51,12 +31,47 @@ def clip_layers(
             break
     if layer_index is None:
         raise ValueError(f"未找到图层 {layer_id}/0")
-    
-    # 预加载并合并图层所有多边形（关键优化）
-    print("正在合并图层多边形...")
-    layer_region = pya.Region()
+
     shapes = top_cell.shapes(layer_index)
-    layer_region.insert(shapes)  # 批量插入提升性能
+    return layout, top_cell, shapes
+
+def save_region_to_file(clipped_region, dbu, cell_name, layer_id, path):
+    # 保存结果
+    if not clipped_region.is_empty():
+        # 创建临时布局
+        temp_layout = pya.Layout()
+        temp_layout.dbu = dbu
+        
+        # 创建结果单元格
+        result_cell = temp_layout.create_cell(f"{cell_name}")
+        result_layer = temp_layout.layer(layer_id, 0)
+        # 插入裁剪结果
+        for poly in clipped_region.each():
+            result_cell.shapes(result_layer).insert(poly)
+        
+        # 写入文件
+        output_file = path
+        temp_layout.write(output_file)
+        print(f"    已保存: {output_file}")
+    else:
+        print(f"跳过文件保存, 空裁剪区域: {path}")
+
+# dbu 单位 : um/pixel
+def clip_layers(
+    oas_file: str, 
+    clip_dir: str, 
+    layer_id: int, 
+    start_points: list[tuple[float, float]], 
+    shape: tuple[float, float], 
+    cell_name: str = None,
+    merge_tolerance: float = 0.0
+):
+    os.makedirs(clip_dir, exist_ok=True)
+    layout, top_cell, shapes = load_shpaes(oas_file, cell_name, layer_id)
+    dbu = layout.dbu
+    # 将 box 类型转化成 poly
+    layer_region = pya.Region()
+    layer_region.insert(shapes)
     
     if merge_tolerance > 0:
         layer_region.merge(merge_tolerance)  # 合并相邻多边形
@@ -72,73 +87,19 @@ def clip_layers(
         # 计算DBU坐标
         x_dbu = int(sx / dbu)
         y_dbu = int(sy / dbu)
-        
         # 创建裁剪区域
         clip_box = pya.Box(
             pya.Point(x_dbu, y_dbu),
             pya.Point(x_dbu + clip_width_dbu, y_dbu + clip_height_dbu)
         )
         clip_region = pya.Region(clip_box)
-        
-        # 执行布尔裁剪
         clipped_region = layer_region & clip_region
-        
-        # 保存结果
-        if not clipped_region.is_empty():
-            # 创建临时布局
-            temp_layout = pya.Layout()
-            temp_layout.dbu = dbu
-            
-            # 创建结果单元格
-            result_cell = temp_layout.create_cell(f"{top_cell.name}")
-            result_layer = temp_layout.layer(layer_id, 0)
-            
-            # 插入裁剪结果
-            for poly in clipped_region.each():
-                result_cell.shapes(result_layer).insert(poly)
-            
-            # 写入文件
-            output_file = os.path.join(clip_dir, f"{n}.gds")
-            temp_layout.write(output_file)
-            print(f"已保存: {output_file}")
-        else:
-            print(f"空裁剪区域: {sx:.3f}, {sy:.3f}")
-
+        save_region_to_file(clipped_region, layout.dbu, top_cell.name, layer_id, os.path.join(clip_dir, f"{n}.oas"))
     print("处理完成！")
 
-
-
-def draw_oas_with_holes(oas_file, cell_name, layer_id, merge_tolerance=0):
-    """
-    读取 OAS 文件并绘制指定图层，处理图形内带孔的情况。
-
-    Args:
-        oas_file (str): OAS 文件路径。
-        cell_name (str): 要绘制的单元格名称，如果为 None，则绘制顶层单元格。
-        layer_id (int): 要绘制的图层编号。
-        merge_tolerance (float): 合并多边形的公差。
-    """
-
-    layout = pya.Layout()
-    layout.read(oas_file)
-
-    # 获取目标单元格
-    top_cell = layout.cell(cell_name) if cell_name else layout.top_cell()
-    if not top_cell:
-        raise ValueError("未找到指定单元格")
-
-    # 查找目标图层
-    layer_index = None
-    for li in layout.layer_indices():
-        info = layout.get_info(li)
-        if info.layer == layer_id and info.datatype == 0:
-            layer_index = li
-            break
-    if layer_index is None:
-        raise ValueError(f"未找到图层 {layer_id}/0")
-
-    shapes = top_cell.shapes(layer_index)
-
+def draw_oas_with_holes(oas_file, cell_name, layer_id):
+    layout, cell, shapes = load_shpaes(oas_file, cell_name, layer_id)
+    
     def plot_points(outer:np.array, color :str = 'r-'):
         outer = outer * layout.dbu
         x = [p[0] for p in outer]
@@ -146,7 +107,6 @@ def draw_oas_with_holes(oas_file, cell_name, layer_id, merge_tolerance=0):
         x.append(x[0])  # 闭合
         y.append(y[0])  # 闭合
         plt.plot(x, y, color)
-
     from hole_algo import get_outer_and_holes_from_poinst
     for shape in shapes.each():
         if shape.is_polygon():
@@ -154,7 +114,7 @@ def draw_oas_with_holes(oas_file, cell_name, layer_id, merge_tolerance=0):
             # 绘制外轮廓
             hull_points = np.array([[p.x, p.y] for p in poly.each_point_hull()])
             outer, holes = get_outer_and_holes_from_poinst(hull_points)
-            plot_points(outer, 'r-')
+            plot_points(outer, 'b-')
             for hole in holes:
                 plot_points(hole, 'r--')
         elif shape.is_box():
@@ -163,8 +123,7 @@ def draw_oas_with_holes(oas_file, cell_name, layer_id, merge_tolerance=0):
                 [box.left, box.bottom], 
                 [box.left, box.top], 
                 [box.right, box.top], 
-                [box.right, box.bottom], 
-                [box.left, box.bottom]
+                [box.right, box.bottom]
             ]), 'b-')
 
     plt.xlabel("X (um)")
@@ -172,7 +131,6 @@ def draw_oas_with_holes(oas_file, cell_name, layer_id, merge_tolerance=0):
     plt.title(f"Layer {layer_id} from {oas_file}")
     plt.grid(True)
     plt.axis('equal')  
-    plt.show()
 
 
 def parse_start_points(s: str) -> List[Tuple[float, float]]:
@@ -187,10 +145,10 @@ def parse_shape(s: str) -> Tuple[float, float]:
     """解析形状字符串，格式为 'width,height'"""
     return tuple(map(float, s.split(',')))
 
-def subclip_workdir(gds_file:str):
+def subclip_workdir(oas_file:str):
     # create dir to save sub-clip
     clip_dir = os.path.join(tempfile.gettempdir(), "simulation")
-    clip_dir = os.path.join(clip_dir, os.path.splitext(os.path.basename(gds_file))[0])
+    clip_dir = os.path.join(clip_dir, os.path.splitext(os.path.basename(oas_file))[0])
     print(f"    subclip workdir is {clip_dir}")
     assert(0 == os.system(f"mkdir -p {clip_dir}"))
     return clip_dir
@@ -204,9 +162,14 @@ def main():
     
     # 必需参数
     parser.add_argument(
-        'gds_file',
+        'oas_file',
         type=str,
         help='输入的GDSII文件路径'
+    )
+    parser.add_argument(
+        'cell_name',
+        type=str,
+        help='要处理的单元名称'
     )
     parser.add_argument(
         'layer_id',
@@ -230,20 +193,13 @@ def main():
         metavar='W,H'
     )
     
-    # 可选参数
-    parser.add_argument(
-        '--cell-name',
-        type=str,
-        default="top",
-        help='要处理的单元名称'
-    )
-    
     # 解析参数
     args = parser.parse_args()
     
     if "" == args.start_points:
-        print(f"    draw layer_{args.layer_id} in {args.gds_file}")
-        draw_oas_with_holes(args.gds_file, args.cell_name, args.layer_id)
+        print(f"    draw layer_{args.layer_id} in {args.oas_file}")
+        draw_oas_with_holes(args.oas_file, args.cell_name, args.layer_id)
+        plt.show()
         return
         
     # 转换参数格式
@@ -253,14 +209,14 @@ def main():
     except ValueError as e:
         parser.error(f"参数格式错误: {e}")
     
-    workdir = subclip_workdir(args.gds_file)
-    key_params = (args.gds_file, args.layer_id, args.cell_name, shape, start_points)
+    workdir = subclip_workdir(args.oas_file)
+    key_params = (args.oas_file, args.layer_id, args.cell_name, shape, start_points)
     args_cache = os.path.join(workdir, "info.bin")
     if os.path.exists(args_cache) and args_from_file(filepath=args_cache) == key_params: 
         print("    subclip alread done")
         return
     clip_layers(
-        gds_file=args.gds_file,
+        oas_file=args.oas_file,
         clip_dir=workdir,
         layer_id=args.layer_id,
         start_points=start_points,
@@ -270,12 +226,11 @@ def main():
     args_to_file(key_params, filepath=args_cache)
 
 '''
-python klayout_op.py /home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas 300  \
+python klayout_op.py /home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas "JDV_M" 300  \
     --start-points "2307.5, 21765.5;2323.5, 21765.5;2339.5, 21765.5;2355.5, 21765.5" \
-    --shape "8, 8" \
-    --cell-name "JDV_M"
+    --shape "8, 8" 
 
-python klayout_op.py /tmp/simulation/LG40_PC_CDU_Contour_Mask_L300/0.gds 300  --cell-name "JDV_M" 
+python klayout_op.py /tmp/simulation/LG40_PC_CDU_Contour_Mask_L300/0.gds "JDV_M" 300  
 '''
 if __name__ == '__main__':
     main()
