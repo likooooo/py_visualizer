@@ -66,6 +66,31 @@ void init_stl_converters() {
     }
 }
 
+
+namespace details
+{
+    template<class TTuple, size_t N = 0> inline void _Update(TTuple& values, 
+        const std::vector<std::string>& keys, const py::dict& dict)
+    {
+        using T = typename std::tuple_element<N, TTuple>::type;
+        
+        std::get<N>(values) = dict.has_key(keys.at(N)) ? T(py::extract<T>(dict[keys.at(N)])) : T{};
+        if constexpr(N + 1 < std::tuple_size<TTuple>::value){
+            _Update<TTuple, N + 1>(values, keys, dict);
+        }
+    }
+}
+template<class TTuple> inline void get_dict_values(TTuple& values, 
+    const std::vector<std::string>& keys, const py::object& obj){
+    py::dict dict = py::extract<py::dict>(obj);    
+    details::_Update<TTuple>(values, keys, dict);
+} 
+template<class TTuple> inline TTuple get_dict_values(const std::vector<std::string>& keys, const py::object& obj){
+    TTuple values{};
+    py::dict dict = py::extract<py::dict>(obj);    
+    details::_Update<TTuple>(values, keys, dict);
+    return values;
+} 
 template<class T, class TAlloc> inline 
 np::ndarray create_ndarray_from_vector(const std::vector<T, TAlloc>& data, std::vector<int> shape) {
     std::reverse(shape.begin(), shape.end());
@@ -84,6 +109,35 @@ np::ndarray create_ndarray_from_vector(const std::vector<T, TAlloc>& data, std::
     return ndarray;
         );
 }
+
+inline size_t sizeof_element_ndarray(np::ndarray arr) {
+    return py::extract<size_t>(arr.get_dtype().attr("itemsize"));
+}
+inline size_t get_ndarray_size(np::ndarray arr) {
+    size_t size = 1;
+    for (size_t i = 0; i < arr.get_nd(); ++i) {
+        size *= arr.shape(i);
+    }
+    return size;
+}
+template <class TPixel> inline  std::pair<TPixel*, size_t> ndarray_ref_no_padding(np::ndarray arr) 
+{
+    static_assert(std::is_standard_layout_v<TPixel>);
+    try{
+        auto dtype = arr.get_dtype();
+        if(np::dtype::get_builtin<typename TPixel::value_type>() != dtype) 
+            throw std::runtime_error("dtype error " + to_string(std::make_tuple(
+                std::string(py::extract<std::string>(dtype.attr("str"))), TypeReflection<TPixel>()
+            )));
+        size_t bytes = sizeof_element_ndarray(arr) * get_ndarray_size(arr); 
+        return {reinterpret_cast<TPixel*>(arr.get_data()), bytes/sizeof(TPixel)};
+    }
+    catch (py::error_already_set) {
+        PyErr_Print();exit(1);
+    };
+}
+
+
 
 [[deprecated("use py_plugin instead")]]  struct py_plot {
     static std::filesystem::path& get_default_visualizer_dir()

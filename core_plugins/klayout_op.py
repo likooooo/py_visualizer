@@ -132,6 +132,53 @@ def draw_oas_with_holes(oas_file, cell_name, layer_id):
     plt.grid(True)
     plt.axis('equal')  
 
+def load_oas_vertexs(oas_file, cell_name, layer_id):
+    layout, cell, shapes = load_shpaes(oas_file, cell_name, layer_id)
+    
+    def plot_points(outer:np.array, color :str = 'r-'):
+        outer = outer * layout.dbu
+        x = [p[0] for p in outer]
+        y = [p[1] for p in outer]
+        x.append(x[0])  # 闭合
+        y.append(y[0])  # 闭合
+        plt.plot(x, y, color)
+    from hole_algo import get_outer_and_holes_from_poinst
+    poly_vertexs = list()
+    hole_vertexs = list()
+
+    debug = True
+    for shape in shapes.each():
+        if shape.is_polygon():
+            poly = shape.polygon
+            # 绘制外轮廓
+            hull_points = np.array([[p.x, p.y] for p in poly.each_point_hull()], dtype= np.int64)
+            outer, holes = get_outer_and_holes_from_poinst(hull_points)
+            assert(outer.dtype == np.int64)
+            if 0 != len(holes): assert(holes[0].dtype == np.int64)
+            poly_vertexs.append(outer)
+            hole_vertexs = hole_vertexs + holes
+            if debug:
+                plot_points(outer, 'b-')
+                for hole in holes:
+                    plot_points(hole, 'r--')
+        elif shape.is_box():
+            box = shape.box
+            outer = np.array([
+                [box.left, box.bottom], 
+                [box.left, box.top], 
+                [box.right, box.top], 
+                [box.right, box.bottom]
+            ], dtype= np.int64)
+            poly_vertexs.append(outer)
+            if debug: plot_points(outer, 'b-')
+    if debug:
+        plt.xlabel("X (um)")
+        plt.ylabel("Y (um)")
+        plt.title(f"Layer {layer_id} from {oas_file}")
+        plt.grid(True)
+        plt.axis('equal')  
+        plt.show()
+    return poly_vertexs, hole_vertexs
 
 def parse_start_points(s: str) -> List[Tuple[float, float]]:
     """解析起始点字符串，格式为 'x1,y1;x2,y2;...'"""

@@ -63,7 +63,7 @@ function(copy_visualizer_files TARGET_NAME Dir)
         TARGET ${TARGET_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
                 "${PY_PY_PLUGINS_DIR}"
-                "${Dir}"
+                "${Dir}/${DIR_NAME}"
         COMMENT "Copying directory ${DIR_NAME} to ${Dir}"
     )
 endfunction()

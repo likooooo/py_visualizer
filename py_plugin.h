@@ -12,7 +12,41 @@
 
 namespace py = boost::python;
 namespace np = boost::python::numpy;
+namespace boost::python
+{
+    // 只是为了可读性...
+    using list_tuple = py::list;
+    using listi = py::list;
+    using listf = py::list;
+    using listc = py::list;
 
+    using list2di = py::list;
+    using list2df = py::list;
+    using list2dc = py::list;
+    using list2d = py::list;
+    
+
+    namespace numpy
+    {
+        using list_array2d = py::list;
+
+        using array1di = np::ndarray;
+        using array1df = np::ndarray;
+        using array1dc = np::ndarray;
+        using array1d = np::ndarray;
+
+
+        using array2di = np::ndarray;
+        using array2df = np::ndarray;
+        using array2dc = np::ndarray;
+        using array2d = np::ndarray;
+        
+        using array3di = np::ndarray;
+        using array3df = np::ndarray;
+        using array3dc = np::ndarray;
+        using array3d = np::ndarray;      
+    }
+}
 struct py_engine{
     bool is_py_running;
     py_engine(bool init = false);
@@ -46,7 +80,8 @@ struct py_loader final
 {
     using module_map = std::map<std::string, pyobject_wrapper>;
     module_map modules;
-    py_loader(const std::filesystem::path& path = "__main__"){
+    py_loader() = default;
+    py_loader(const std::filesystem::path& path){
         reset_current(path);
     }
     void reset_current(const std::filesystem::path& path){
@@ -91,14 +126,14 @@ struct py_plugin
         if constexpr (!is_void_return)
         {
             T ret_val;
-            catch_py_error(ret_val = ref()[module][func](std::forward<Args>(args)...));
+            catch_py_error(ret_val = py::extract<T>(ref()[module][func](std::forward<Args>(args)...)));
             return ret_val;
         }
         else{
             catch_py_error(ref()[module][func](std::forward<Args>(args)...));
         }
     } 
-    static void exec(const std::vector<std::string>& console_cmd)
+    static py::object exec(const std::vector<std::string>& console_cmd)
     {
         py::list args(console_cmd);
         py::object main_module, main_namespace;
@@ -108,5 +143,6 @@ struct py_plugin
         py::import("sys").attr("argv") = py::list(console_cmd);
         catch_py_error(py::exec_file(console_cmd.front().c_str(), main_namespace));
         py::import("sys").attr("argv") = old_args;
+        return main_namespace;
     } 
 };

@@ -43,12 +43,12 @@ def is_same_direction(edge1: Edge, edge2: Edge) -> bool:
     vec2 = edge2[1] - edge2[0]
     return np.dot(vec1, vec2) > 0  # 向量点积大于0表示同向
 
-def detect_holes(points: Polygon) -> Tuple[Polygon, List[Polygon]]:
+def detect_holes(points: Polygon) -> Tuple[Polygon, List[Polygon]]: # np.int64
     """
     检测多边形中的孔洞
     返回: (外轮廓, 孔洞列表)
     """
-    points = np.asarray(points, dtype=np.float64)
+    points = np.asarray(points, dtype=np.int64)
     pos_info = {tuple(p): i for i, p in enumerate(points)}  # 点坐标到索引的映射
     consider_edges = []  # 待比较的边
     holes = []          # 检测到的孔洞

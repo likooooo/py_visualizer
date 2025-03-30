@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import os
 import numpy as np
-from typing import List
+from typing import TypeAlias, List, Tuple
 from klayout_op import *
 
-def parse_line(line):
+def parse_line(line:str) ->Tuple :
     """解析单行数据并返回元组"""
     items = line.strip().split('\t')
     
@@ -29,7 +29,7 @@ def parse_line(line):
     
     return tuple(converted)
 
-def read_gauge_file(file_path:str)->List:
+def read_gauge_file(file_path:str)->List[Tuple]:
     """读取文件并返回包含所有元组的列表
     
     Args:
@@ -46,19 +46,19 @@ def read_gauge_file(file_path:str)->List:
                 data.append(parse_line(line))
     return data
 
-def gather_cutline(data : List, dbu_in_nm : float):
-    cutlines = [x[4:8] for x in data]
-    arr = np.array(cutlines)
+def get_culine_from_gauge_table(data : List[Tuple], dbu: float)->np.ndarray: # N * 4
+    arr = np.array([x[4:8] for x in data], np.float64)
+
+    check_pass = True
     x_eq = arr[:, 0] == arr[:, 2]
     y_eq = arr[:, 1] == arr[:, 3]
     check = x_eq != y_eq
-    success = True
     for i in range(len(check)):
         if not check[i]:
             print(f"cutline check failed {arr[i]}")
-            success = False
-    assert(success)
-    return arr * dbu_in_nm
+            check_pass = False
+    assert(check_pass)
+    return arr * dbu
 
 def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
     return np.column_stack([
@@ -66,14 +66,14 @@ def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
         (cutlines[:, 1] + cutlines[:, 3]) / 2  
     ])
 
-def clip_layers_by_cutline(gds_path:str,cutlines : np.array, shape : tuple[float, float], layer_id:int, cell_name:str):
+def clip_layers_by_cutline(gds_path : str, workdir : str,cutlines : np.array, shape : tuple[float, float], layer_id:int, cell_name:str):
     xsize, ysize = shape[0] / 2, shape[1] / 2
     start_points = np.column_stack([
         (cutlines[:, 0] + cutlines[:, 2]) / 2 - xsize, 
         (cutlines[:, 1] + cutlines[:, 3]) / 2 - ysize 
     ])
     start_points = [tuple(map(float, row)) for row in start_points]
-    clip_layers(gds_path, subclip_workdir(gds_path), layer_id, start_points, shape, cell_name)
+    clip_layers(gds_path, workdir, layer_id, start_points, shape, cell_name)
 
 
 '''
@@ -88,7 +88,7 @@ def clip_layers_by_cutline(gds_path:str,cutlines : np.array, shape : tuple[float
     JDV_M 300 --shape "8, 8" --verbose 3
 
 '''
-if __name__ == '__main__':
+def main():
     import argparse
     # 创建命令行解析器
     parser = argparse.ArgumentParser(
@@ -131,19 +131,29 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    parsed_data = read_gauge_file(args.gauge_file)
-    cutlines = gather_cutline(parsed_data, dbu_in_nm = get_dbu(args.oas_file))
+    gauge_table = read_gauge_file(args.gauge_file)
+    cutlines_in_um = get_culine_from_gauge_table(gauge_table, get_dbu(args.oas_file))
+    mid_points_in_um = get_midpoints_from_cutline(cutlines_in_um)
+    print("    load gauge file success")
+    workdir = subclip_workdir(args.oas_file)
+    args_cache = os.path.join(workdir, "info.bin")
+    key_params = (args.gauge_file, args.oas_file, args.cell_name, args.layer_id, args.shape)
+    if os.path.exists(args_cache) and args_from_file(filepath=args_cache) == key_params: 
+        print("    subclip alread done")
+        return workdir, cutlines_in_um, mid_points_in_um
     clip_layers_by_cutline(
-        args.oas_file, cutlines, args.shape, args.layer_id, args.cell_name
+        args.oas_file, workdir, cutlines_in_um, args.shape, args.layer_id, args.cell_name
     )
-    points = get_midpoints_from_cutline(cutlines)
-    
-    for i in [[args.verbose], range(len(points))][int(-1 == args.verbose)]:
-        draw_oas_with_holes(os.path.join(subclip_workdir(args.oas_file), f"{i}.oas"), args.cell_name, args.layer_id)
-        x, y = [points[i][0]], [points[i][1]]
+    args_to_file(key_params, filepath=args_cache)
+
+    if args.verbose in range(len(mid_points_in_um)):
+        i = args.verbose
+        draw_oas_with_holes(os.path.join(workdir, f"{i}.oas"), args.cell_name, args.layer_id)
+        x, y = [mid_points_in_um[i][0]], [mid_points_in_um[i][1]]
         plt.plot(x, y, "y-o")
-        plt.plot(cutlines[i][0:3:2], cutlines[i][1:4:2], "r-")
+        plt.plot(cutlines_in_um[i][0:3:2], cutlines_in_um[i][1:4:2], "r-")
         plt.show()
-    
-    # print(cutlines)
-    # print(points)
+    return workdir, cutlines_in_um, mid_points_in_um
+
+if __name__ == '__main__':
+    workdir, cutlines_in_um, mid_points_in_um = main()

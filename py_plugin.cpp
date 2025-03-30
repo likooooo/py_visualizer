@@ -43,6 +43,7 @@ void py_engine::init_exception_for_pycall()
     >();
 }
 void py_engine::dispose(){
+    py_plugin::ref() = py_loader();
     get_py_inter() = py_engine(false);
 }
 
