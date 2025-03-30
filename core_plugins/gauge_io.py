@@ -140,14 +140,16 @@ def main():
     key_params = (args.gauge_file, args.oas_file, args.cell_name, args.layer_id, args.shape)
     if os.path.exists(args_cache) and args_from_file(filepath=args_cache) == key_params: 
         print("    subclip alread done")
-        return workdir, cutlines_in_um, mid_points_in_um
-    clip_layers_by_cutline(
-        args.oas_file, workdir, cutlines_in_um, args.shape, args.layer_id, args.cell_name
-    )
-    args_to_file(key_params, filepath=args_cache)
+    else:
+        clip_layers_by_cutline(
+            args.oas_file, workdir, cutlines_in_um, args.shape, args.layer_id, args.cell_name
+        )
+        args_to_file(key_params, filepath=args_cache)
+        print("    subclip success")
 
     if args.verbose in range(len(mid_points_in_um)):
         i = args.verbose
+        print(f"    verbose of {i}.oas")
         draw_oas_with_holes(os.path.join(workdir, f"{i}.oas"), args.cell_name, args.layer_id)
         x, y = [mid_points_in_um[i][0]], [mid_points_in_um[i][1]]
         plt.plot(x, y, "y-o")

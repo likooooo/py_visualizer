@@ -146,7 +146,7 @@ def load_oas_vertexs(oas_file, cell_name, layer_id):
     poly_vertexs = list()
     hole_vertexs = list()
 
-    debug = True
+    debug = False
     for shape in shapes.each():
         if shape.is_polygon():
             poly = shape.polygon

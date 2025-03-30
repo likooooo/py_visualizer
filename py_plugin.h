@@ -106,6 +106,8 @@ struct py_loader final
                 py::object obj = py::import(file.c_str());
                 if (obj.is_none()) throw std::range_error("import module failed in "  + file);
                 modules[file] = pyobject_wrapper(obj);
+                std::cout << "    load plugin " << path.stem() << " success" << std::endl;
+
             );
         }
     }
