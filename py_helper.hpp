@@ -2,6 +2,19 @@
 #include "py_plugin.h"
 #include <type_traist_notebook/type_traist.hpp>
 
+//== for convert.hpp
+template<class TTo>
+struct convert<py::object, TTo>{
+    constexpr TTo operator()(py::object from){
+        return py::extract<TTo>(from);
+    }
+};
+template<class TTo>
+struct convert<py::api::proxy<boost::python::api::item_policies>, TTo>{
+    constexpr TTo operator()(py::api::proxy<boost::python::api::item_policies> from){
+        return py::extract<TTo>(from);
+    }
+};
 template<class T> inline 
 std::ostream& py_list_to_string (std::ostream& strean, const py::list& py_list,const char* separator = "\n") {
     int list_count = len(py_list);

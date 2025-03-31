@@ -127,9 +127,7 @@ struct py_plugin
         constexpr bool is_void_return = std::is_same<void, T>::value;
         if constexpr (!is_void_return)
         {
-            T ret_val;
-            catch_py_error(ret_val = py::extract<T>(ref()[module][func](std::forward<Args>(args)...)));
-            return ret_val;
+            catch_py_error(return py::extract<T>(ref()[module][func](std::forward<Args>(args)...)));
         }
         else{
             catch_py_error(ref()[module][func](std::forward<Args>(args)...));
