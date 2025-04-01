@@ -34,13 +34,13 @@ add_custom_command(TARGET py_visualizer POST_BUILD
     $<TARGET_FILE_DIR:py_visualizer>
 )
 
-install(EXPORT CudaTargets
+install(EXPORT pyTargets
     FILE py_visualizerTargets.cmake
     NAMESPACE py_visualizer::
     DESTINATION cmake
 )
 
-install(TARGETS py_gui py_visualizer EXPORT CudaTargets
+install(TARGETS py_gui py_visualizer EXPORT pyTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
