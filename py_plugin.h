@@ -93,6 +93,7 @@ struct py_loader final
         if (fs::is_directory(path)) {
             add_path_to_sys_path(path.c_str());
             for (const auto& entry : fs::directory_iterator(path)) {
+                if (fs::is_directory(entry.path())) continue;
                 this->append_import_to_current(entry.path());
             }
         } 
