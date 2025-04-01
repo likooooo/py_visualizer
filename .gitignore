@@ -1,3 +1,4 @@
 build
 py_visualizer_files.cmake
 __pycache__
+CMakeTestAutoGeneration.cmake

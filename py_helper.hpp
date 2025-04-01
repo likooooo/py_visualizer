@@ -5,14 +5,14 @@
 //== for convert.hpp
 template<class TTo>
 struct convert<py::object, TTo>{
-    constexpr TTo operator()(py::object from){
-        return py::extract<TTo>(from);
+    TTo operator()(py::object from){
+        catch_py_error(return py::extract<TTo>(from));
     }
 };
 template<class TTo>
 struct convert<py::api::proxy<boost::python::api::item_policies>, TTo>{
-    constexpr TTo operator()(py::api::proxy<boost::python::api::item_policies> from){
-        return py::extract<TTo>(from);
+    TTo operator()(py::api::proxy<boost::python::api::item_policies> from){
+        catch_py_error(return py::extract<TTo>(from));
     }
 };
 template<class T> inline 

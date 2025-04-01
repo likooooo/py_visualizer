@@ -70,3 +70,4 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/py_visualizer-config-version.cmake"
     DESTINATION cmake
 )
+include(${PROJECT_SOURCE_DIR}/cmake/auto_ctest.cmake)
