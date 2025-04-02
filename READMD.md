@@ -23,6 +23,10 @@ downgrade to 'numpy<2' or try to upgrade the affected module.
 We expect that some modules will need time to support NumPy 2.
 ```
 python 的 numpy 和 boost::python::numpy 不兼容 
+``` sh
+pip uninstall numpy -y
+pip install "numpy<2.0.0" --force-reinstall 
+```
 
 - 报错 2：
 ```shell
