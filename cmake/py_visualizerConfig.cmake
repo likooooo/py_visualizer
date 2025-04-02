@@ -4,6 +4,7 @@
 if(TARGET py_visualizer)
     return()
 endif()
+message(STATUS "Found py_visualizer")
 
 # Get the directory where this file is located.
 get_filename_component(_current_dir "${CMAKE_CURRENT_LIST_FILE}" PATH)
