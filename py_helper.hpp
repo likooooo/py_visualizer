@@ -15,6 +15,13 @@ struct convert<py::api::proxy<boost::python::api::item_policies>, TTo>{
         catch_py_error(return py::extract<TTo>(from));
     }
 };
+template<class TTo>
+struct convert<py::api::proxy<boost::python::api::const_item_policies>, TTo>{
+    TTo operator()(py::api::proxy<boost::python::api::const_item_policies> from){
+        catch_py_error(return py::extract<TTo>(from));
+    }
+};
+
 template<class T> inline 
 std::ostream& py_list_to_string (std::ostream& strean, const py::list& py_list,const char* separator = "\n") {
     int list_count = len(py_list);
