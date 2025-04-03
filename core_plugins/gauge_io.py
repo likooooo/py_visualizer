@@ -60,6 +60,9 @@ def get_culine_from_gauge_table(data : List[Tuple], dbu: float)->np.ndarray: # N
     assert(check_pass)
     return arr * dbu
 
+def get_design_cd(data):
+    return np.array([x[9] for x in data], np.int64_t)
+
 def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
     return np.column_stack([
         (cutlines[:, 0] + cutlines[:, 2]) / 2, 
