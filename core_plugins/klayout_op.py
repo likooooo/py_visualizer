@@ -113,7 +113,9 @@ def draw_oas_with_holes(oas_file, cell_name, layer_id):
             poly = shape.polygon
             # 绘制外轮廓
             hull_points = np.array([[p.x, p.y] for p in poly.each_point_hull()])
-            outer, holes = get_outer_and_holes_from_poinst(hull_points)
+            outer = hull_points
+            holes = []
+            # outer, holes = get_outer_and_holes_from_poinst(hull_points)
             plot_points(outer, 'b-')
             for hole in holes:
                 plot_points(hole, 'r--')
@@ -152,9 +154,12 @@ def load_oas_vertexs(oas_file, cell_name, layer_id):
             poly = shape.polygon
             # 绘制外轮廓
             hull_points = np.array([[p.x, p.y] for p in poly.each_point_hull()], dtype= np.int64)
-            outer, holes = get_outer_and_holes_from_poinst(hull_points)
-            assert(outer.dtype == np.int64)
-            if 0 != len(holes): assert(holes[0].dtype == np.int64)
+            outer = hull_points
+            holes = []
+
+            # outer, holes = get_outer_and_holes_from_poinst(hull_points)
+            # assert(outer.dtype == np.int64)
+            # if 0 != len(holes): assert(holes[0].dtype == np.int64)
             poly_vertexs.append(outer)
             hole_vertexs = hole_vertexs + holes
             if debug:

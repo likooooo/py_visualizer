@@ -29,8 +29,6 @@ int main()
         "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas",
         "JDV_M", "300", "--shape", "8, 8", "--verbose", "3"
     });
-    auto cutlines = convert_to<np::array2d>(workspace["cutlines_in_um"]);
-    std::cout << cutlines.shape(0) <<","<<cutlines.shape(1) << std::endl;
 
     py_plugin::call<void>("image_io", "test");
     catch_py_error(test_plot_curve());

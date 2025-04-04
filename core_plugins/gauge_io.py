@@ -57,18 +57,26 @@ class mt_cutline_data:
         self.pitch       = nm_to_dbu(x[10], dbu) 
         self.measured_cd = x[11] * 1e-3  
         self.weight      = x[16]
-        self.check_data()
-    def check_data(self):
+        self.check_data(x)
+    def check_data(self, x):
         x1,y1 = self.cutline[0]
         x2,y2 = self.cutline[1]
-        assert(y1 == y2)
+        if (y1 != y2) == (x1 != x2):
+            raise Exception(f"cutline check failed {self.cutline}\n{x}")
         # assert((x2 - x1) == self.pitch)
 
 def get_cutline_datas(data, dbu):
     cutline_data = mt_cutline_data
     lines = list()
+    # unique_pattern = ["siLEDSP", "LP", "ILP", "BP", "Lin", "Lin_iso", "iLin_iso", "RLin", "sLP", "sBP"]
+    ignore_list = []#["siLED90S200P180"]
+    # trans_table = str.maketrans('', '', '0123456789')
     for x in data:
         temp = cutline_data(x, dbu)
+        # s = temp.pattern_name.translate(trans_table)
+        # if s in unique_pattern : continue
+        if temp.pattern_name in ignore_list or temp.weight ==0 : continue
+        # unique_pattern.append(s)
         lines.append(temp)
     return lines
 
@@ -81,6 +89,35 @@ def clip_layers_by_cutline(gds_path : str, workdir : str,cutlines : np.array, sh
     start_points = [tuple(map(float, row)) for row in start_points]
     clip_layers(gds_path, workdir, layer_id, start_points, shape, cell_name)
 
+
+def clip_flow(cutlines_in_um, oas_file, cell_name, layer_id, shape, verbose):
+    workdir = subclip_workdir(oas_file)
+    args_cache = os.path.join(workdir, "info.bin")
+    key_params = (cutlines_in_um.tolist(), oas_file, cell_name, layer_id, shape)
+    if os.path.exists(args_cache) and args_from_file(filepath=args_cache) == key_params: 
+        print("    subclip alread done")
+    else:
+        clip_layers_by_cutline(
+            oas_file, workdir, cutlines_in_um, shape, layer_id, cell_name
+        )
+        args_to_file(key_params, filepath=args_cache)
+        print("    subclip success")
+
+    if verbose in range(len(cutlines_in_um)):
+        def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
+            return np.column_stack([
+                (cutlines[:, 0] + cutlines[:, 2]) / 2, 
+                (cutlines[:, 1] + cutlines[:, 3]) / 2  
+            ])
+        mid_points_in_um = get_midpoints_from_cutline(cutlines_in_um)
+        i = verbose
+        print(f"    verbose of {i}.oas")
+        draw_oas_with_holes(os.path.join(workdir, f"{i}.oas"), cell_name, layer_id)
+        x, y = [mid_points_in_um[i][0]], [mid_points_in_um[i][1]]
+        plt.plot(x, y, "y-o")
+        plt.plot(cutlines_in_um[i][0:3:2], cutlines_in_um[i][1:4:2], "r-")
+        plt.show()
+    return workdir
 
 '''
 ./gauge_io.py \
@@ -136,11 +173,6 @@ def main():
         help="cutline 可视化"
     )
 
-    def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
-        return np.column_stack([
-            (cutlines[:, 0] + cutlines[:, 2]) / 2, 
-            (cutlines[:, 1] + cutlines[:, 3]) / 2  
-        ])
     def get_cutline(data : List[Tuple], dbu: float)->list: # N * 4
         arr = np.array([x[4:8] for x in data], np.float64)
         check_pass = True
@@ -158,29 +190,8 @@ def main():
     args = parser.parse_args()
     gauge_table = read_gauge_file(args.gauge_file)
     cutlines_in_um = get_cutline(gauge_table, get_dbu(args.oas_file))
-    mid_points_in_um = get_midpoints_from_cutline(cutlines_in_um)
     print("    load gauge file success")
-    workdir = subclip_workdir(args.oas_file)
-    args_cache = os.path.join(workdir, "info.bin")
-    key_params = (args.gauge_file, args.oas_file, args.cell_name, args.layer_id, args.shape)
-    if os.path.exists(args_cache) and args_from_file(filepath=args_cache) == key_params: 
-        print("    subclip alread done")
-    else:
-        clip_layers_by_cutline(
-            args.oas_file, workdir, cutlines_in_um, args.shape, args.layer_id, args.cell_name
-        )
-        args_to_file(key_params, filepath=args_cache)
-        print("    subclip success")
-
-    if args.verbose in range(len(mid_points_in_um)):
-        i = args.verbose
-        print(f"    verbose of {i}.oas")
-        draw_oas_with_holes(os.path.join(workdir, f"{i}.oas"), args.cell_name, args.layer_id)
-        x, y = [mid_points_in_um[i][0]], [mid_points_in_um[i][1]]
-        plt.plot(x, y, "y-o")
-        plt.plot(cutlines_in_um[i][0:3:2], cutlines_in_um[i][1:4:2], "r-")
-        plt.show()
-    return workdir, cutlines_in_um
+    return clip_flow(cutlines_in_um, args.oas_file, args.cell_name, args.layer_id, args.shape, args.verbose)
 
 if __name__ == '__main__':
-    workdir, cutlines_in_um = main()
+    workdir = main()

@@ -28,6 +28,27 @@ struct convert<py::api::proxy<boost::python::api::const_item_policies>, TTo>{
     }
 };
 
+template<>struct convert<py::object, std::string>{
+    std::string operator()(py::object from){
+        catch_py_error(return py::extract<std::string>(from));
+    }
+};
+template<>struct convert<pyobject_wrapper, std::string>{
+    std::string operator()(pyobject_wrapper from){
+        catch_py_error(return py::extract<std::string>(from));
+    }
+};
+template<>struct convert<py::api::proxy<boost::python::api::item_policies>, std::string>{
+    std::string operator()(py::api::proxy<boost::python::api::item_policies> from){
+        catch_py_error(return py::extract<std::string>(from));
+    }
+};
+template<> struct convert<py::api::proxy<boost::python::api::const_item_policies>, std::string>{
+    std::string operator()(py::api::proxy<boost::python::api::const_item_policies> from){
+        catch_py_error(return py::extract<std::string>(from));
+    }
+};
+
 template<class T> inline 
 std::ostream& py_list_to_string (std::ostream& strean, const py::list& py_list,const char* separator = "\n") {
     int list_count = len(py_list);
