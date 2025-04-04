@@ -10,6 +10,12 @@ struct convert<py::object, TTo>{
     }
 };
 template<class TTo>
+struct convert<pyobject_wrapper, TTo>{
+    TTo operator()(pyobject_wrapper from){
+        catch_py_error(return py::extract<TTo>(from));
+    }
+};
+template<class TTo>
 struct convert<py::api::proxy<boost::python::api::item_policies>, TTo>{
     TTo operator()(py::api::proxy<boost::python::api::item_policies> from){
         catch_py_error(return py::extract<TTo>(from));

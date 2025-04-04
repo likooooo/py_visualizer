@@ -29,7 +29,12 @@ void py_engine::init(){
 
         array<int, 2>, array<size_t, 2>,  array<float, 2>, array<double, 2>, array<complex<float>, 2>, array<complex<double>, 2>,
         array<int, 3>, array<size_t, 3>,  array<float, 3>, array<double, 3>, array<complex<float>, 3>, array<complex<double>, 3>,
-        array<array<float, 2>, 2>, array<array<double, 2>, 2>
+        array<array<float, 2>, 2>, array<array<double, 2>, 2>,
+
+        // cutlines
+        array<int64_t, 2>, array<array<int64_t, 2>, 2>, vector<array<array<int64_t, 2>, 2>>,
+        // polys
+        vector<array<int64_t, 2>>, vector<vector<array<int64_t, 2>>>
     >();
 }
 void py_engine::init_exception_for_pycall()

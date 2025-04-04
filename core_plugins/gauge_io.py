@@ -46,28 +46,32 @@ def read_gauge_file(file_path:str)->List[Tuple]:
                 data.append(parse_line(line))
     return data
 
-def get_culine_from_gauge_table(data : List[Tuple], dbu: float)->np.ndarray: # N * 4
-    arr = np.array([x[4:8] for x in data], np.float64)
+def nm_to_dbu(nm, dbu): return int(nm * 1e-3 / dbu)
 
-    check_pass = True
-    x_eq = arr[:, 0] == arr[:, 2]
-    y_eq = arr[:, 1] == arr[:, 3]
-    check = x_eq != y_eq
-    for i in range(len(check)):
-        if not check[i]:
-            print(f"cutline check failed {arr[i]}")
-            check_pass = False
-    assert(check_pass)
-    return arr * dbu
+class mt_cutline_data:
+    def __init__(self, x, dbu):
+        self.pattern_name= x[1]
+        self.cutline     = [x[4:6], x[6:8]]
+        self.polar       = [1, -1][int(0 == x[8])]
+        self.desigin_cd  = nm_to_dbu(x[9], dbu) 
+        self.pitch       = nm_to_dbu(x[10], dbu) 
+        # self.measured_cd = x[11] * 1e-3  
+        self.measured_cd = self.desigin_cd
+        self.weight      = x[16]
+        self.check_data()
+    def check_data(self):
+        x1,y1 = self.cutline[0]
+        x2,y2 = self.cutline[1]
+        assert(y1 == y2)
+        # assert((x2 - x1) == self.pitch)
 
-def get_design_cd(data):
-    return np.array([x[9] for x in data], np.int64_t)
-
-def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
-    return np.column_stack([
-        (cutlines[:, 0] + cutlines[:, 2]) / 2, 
-        (cutlines[:, 1] + cutlines[:, 3]) / 2  
-    ])
+def get_cutline_datas(data, dbu):
+    cutline_data = mt_cutline_data
+    lines = list()
+    for x in data:
+        temp = cutline_data(x, dbu)
+        lines.append(temp)
+    return lines
 
 def clip_layers_by_cutline(gds_path : str, workdir : str,cutlines : np.array, shape : tuple[float, float], layer_id:int, cell_name:str):
     xsize, ysize = shape[0] / 2, shape[1] / 2
@@ -133,9 +137,28 @@ def main():
         help="cutline 可视化"
     )
 
+    def get_midpoints_from_cutline(cutlines : np.array)-> np.array:
+        return np.column_stack([
+            (cutlines[:, 0] + cutlines[:, 2]) / 2, 
+            (cutlines[:, 1] + cutlines[:, 3]) / 2  
+        ])
+    def get_cutline(data : List[Tuple], dbu: float)->list: # N * 4
+        arr = np.array([x[4:8] for x in data], np.float64)
+        check_pass = True
+        x_eq = arr[:, 0] == arr[:, 2]
+        y_eq = arr[:, 1] == arr[:, 3]
+        check = x_eq != y_eq
+        for i in range(len(check)):
+            if not check[i]:
+                print(f"cutline check failed {arr[i]}")
+                check_pass = False
+        assert(check_pass)
+        return arr * dbu
+
+
     args = parser.parse_args()
     gauge_table = read_gauge_file(args.gauge_file)
-    cutlines_in_um = get_culine_from_gauge_table(gauge_table, get_dbu(args.oas_file))
+    cutlines_in_um = get_cutline(gauge_table, get_dbu(args.oas_file))
     mid_points_in_um = get_midpoints_from_cutline(cutlines_in_um)
     print("    load gauge file success")
     workdir = subclip_workdir(args.oas_file)
@@ -158,7 +181,7 @@ def main():
         plt.plot(x, y, "y-o")
         plt.plot(cutlines_in_um[i][0:3:2], cutlines_in_um[i][1:4:2], "r-")
         plt.show()
-    return workdir, cutlines_in_um, mid_points_in_um
+    return workdir, cutlines_in_um
 
 if __name__ == '__main__':
-    workdir, cutlines_in_um, mid_points_in_um = main()
+    workdir, cutlines_in_um = main()
