@@ -52,11 +52,10 @@ class mt_cutline_data:
     def __init__(self, x, dbu):
         self.pattern_name= x[1]
         self.cutline     = [x[4:6], x[6:8]]
-        self.polar       = [1, -1][int(0 == x[8])]
+        self.polar       = [-1, 1][int(0 == x[8])]
         self.desigin_cd  = nm_to_dbu(x[9], dbu) 
         self.pitch       = nm_to_dbu(x[10], dbu) 
-        # self.measured_cd = x[11] * 1e-3  
-        self.measured_cd = self.desigin_cd
+        self.measured_cd = x[11] * 1e-3  
         self.weight      = x[16]
         self.check_data()
     def check_data(self):
