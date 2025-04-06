@@ -48,14 +48,20 @@ def read_gauge_file(file_path:str)->List[Tuple]:
 
 def nm_to_dbu(nm, dbu): return int(nm * 1e-3 / dbu)
 
+
+post_calib_options = ["simulated-cd(dbu) ", " error(nm)"]
 class mt_cutline_data:
+    flag = False
     def __init__(self, x, dbu):
+        if not mt_cutline_data.flag: 
+            mt_cutline_data.flag = True
+            print("use design cd for test")
         self.pattern_name= x[1]
         self.cutline     = [x[4:6], x[6:8]]
         self.polar       = [-1, 1][int(0 == x[8])]
         self.desigin_cd  = nm_to_dbu(x[9], dbu) 
         self.pitch       = nm_to_dbu(x[10], dbu) 
-        self.measured_cd = x[11] * 1e-3  
+        self.measured_cd = self.desigin_cd#nm_to_dbu(x[11], dbu)
         self.weight      = x[16]
         self.check_data(x)
     def check_data(self, x):
