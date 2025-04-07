@@ -12,5 +12,5 @@ def svd(A, y):
     # 用伪逆求解 x 
     # x = (A^+) .* y
     x = VT.T @ Sigma_inv @ U.T @ y
-    print(f"    optimize S={S} condition-number is {S.max()/ S.min()}")
+    # print(f"    optimize S={S} condition-number is {S.max()/ S.min()}")
     return x.tolist()
