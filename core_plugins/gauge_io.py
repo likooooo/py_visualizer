@@ -61,7 +61,8 @@ class mt_cutline_data:
         self.polar       = [-1, 1][int(0 == x[8])]
         self.desigin_cd  = nm_to_dbu(x[9], dbu) 
         self.pitch       = nm_to_dbu(x[10], dbu) 
-        self.measured_cd = self.desigin_cd#nm_to_dbu(x[11], dbu)
+        self.measured_cd = self.desigin_cd#
+        self.measured_cd = nm_to_dbu(x[11], dbu)
         self.weight      = x[16]
         self.check_data(x)
     def check_data(self, x):
