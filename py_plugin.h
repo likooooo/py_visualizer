@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstring>
 #include <type_traist_notebook/type_traist.hpp>
+#include <functional>
 
 #define catch_py_error(code) do{try{code;}catch (py::error_already_set) {PyErr_Print();exit(1);}}while(0)
 
@@ -54,6 +55,7 @@ struct py_engine{
     ~py_engine();
     void operator = (py_engine&& py);
 
+    static bool regist_py_custom(std::function<void()> callback);
     static void init();
     static void init_exception_for_pycall();
     static void dispose();

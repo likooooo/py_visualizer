@@ -3,6 +3,13 @@
 #include "py_exception.hpp"
 #include <ios>          // std::ios_base::failure
 
+std::vector<std::function<void()>> regist_callback_list;
+bool py_engine::regist_py_custom(std::function<void()> callback)
+{
+    regist_callback_list.push_back(callback);
+    return true;
+}
+
 py_engine::py_engine(bool init) : is_py_running(init){
     if(!init) return;
     Py_Initialize();
@@ -36,6 +43,7 @@ void py_engine::init(){
         // polys
         vector<array<int64_t, 2>>, vector<vector<array<int64_t, 2>>>
     >();
+    for(const auto& f : regist_callback_list) f();
 }
 void py_engine::init_exception_for_pycall()
 {
