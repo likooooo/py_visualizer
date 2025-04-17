@@ -247,90 +247,89 @@ def plot_curves(lines, start_x=None, step_x=None, legends=None, types=None, samp
     plt.grid(True)
     plt.show()
 
-if __name__ == "__main__":
-    def load_image_from_cmd():
-        import argparse
-        parser = argparse.ArgumentParser(description="image visualizer")
-        parser.add_argument("--path", type=str, required=True)
-        parser.add_argument("--shape",type=str, nargs="+", default= [])
-        parser.add_argument("--type", type=str, default="")
-        args = parser.parse_args() 
-        assert(os.path.exists(args.path))
-
-        def to_np_type(s):
-            dtype_map = {
-                'c': np.complex64,
-                'z': np.complex128,
-                'f': np.float32,
-                'd': np.float64,
-                'n': np.int32,
-                '' : np.float32
-            }
-            return dtype_map[s]
-        def auto_args_if_need(args):
-            default_type = {
-                4 : 'f',
-                8 : 'c',
-                16: 'z'
-            }
-            import math
-            stats = os.stat(args.path)
-            n = stats.st_size
-            # auto shape
-            if '' != args.type and 0 == len(args.shape):
-                n1 = int(n / np.dtype(to_np_type(args.type)).itemsize)
-                # single image
-                w = int(math.sqrt(n1))
-                if w * w == n1:
-                    args.shape = [w, w]
-                    return
-                # image stack
-                # n = a * w * h
-                for a in range(2, 16):
-                    if 0 == n1 % a:
-                        n1 = int(n1/a)
-                        w = int(math.sqrt(n1))
-                        if w * w == n1:
-                            args.shape = [w *a, w]
-                            return
-                raise RuntimeError("declshape failed")
-            # auto type
-            if '' == args.type and 0 != len(args.shape):
-                i = int(n / np.prod(args.shape))
-                assert(i * np.prod(args.shape) == n)
-                if i in default_type:
-                    args.type = default_type[i]
-                    return
-                raise RuntimeError("decltype failed")
-            # auto shape & type
-            if '' == args.type and 0 == len(args.shape):
-                # single image 
-                # n = t * w * h
-                for t in default_type.keys():
-                    n1 = int(n/t)
+def load_binary_image_file(path, shape, pixel_type):
+    def to_np_type(s):
+        dtype_map = {
+            'c': np.complex64,
+            'z': np.complex128,
+            'f': np.float32,
+            'd': np.float64,
+            'n': np.int32,
+            '' : np.float32
+        }
+        return dtype_map[s]
+    def auto_args_if_need(path, shape, pixel_type):
+        default_type = {
+            4 : 'f',
+            8 : 'c',
+            16: 'z'
+        }
+        import math
+        stats = os.stat(path)
+        n = stats.st_size
+        # auto shape
+        if '' != pixel_type and 0 == len(shape):
+            n1 = int(n / np.dtype(to_np_type(pixel_type)).itemsize)
+            # single image
+            w = int(math.sqrt(n1))
+            if w * w == n1:
+                shape = [w, w]
+                return  shape, pixel_type
+            # image stack
+            # n = a * w * h
+            for a in range(2, 16):
+                if 0 == n1 % a:
+                    n1 = int(n1/a)
                     w = int(math.sqrt(n1))
                     if w * w == n1:
-                        args.type = default_type[t]
-                        args.shape = [w, w]
-                        return
-                raise RuntimeError("decltype&shape failed")
-        auto_args_if_need(args)
-        def print_image_info(args):
-            print("* image visualizer")
-            print("    path =", args.path)
-            print("    shape=", args.shape)
-            print("    type =", args.type)
-        print_image_info(args)
-        data = np.fromfile(args.path, dtype=to_np_type(args.type))
-        data = np.reshape(data, args.shape)
-        if args.type in ['c', 'z']:
-            print("    origin=")
-            print(data)
-            data = np.abs(data)
-        return data
-    display_image(load_image_from_cmd())
-        
+                        shape = [w *a, w]
+                        return  shape, pixel_type
+            raise RuntimeError("declshape failed")
+        # auto type
+        if '' == pixel_type and 0 != len(shape):
+            i = int(n / np.prod(shape))
+            assert(i * np.prod(shape) == n)
+            if i in default_type:
+                pixel_type = default_type[i]
+                return shape, pixel_type
+            raise RuntimeError("decltype failed")
+        # auto shape & type
+        if '' == pixel_type and 0 == len(shape):
+            # single image 
+            # n = t * w * h
+            for t in default_type.keys():
+                n1 = int(n/t)
+                w = int(math.sqrt(n1))
+                if w * w == n1:
+                    pixel_type = default_type[t]
+                    shape = [w, w]
+                    return shape, pixel_type
+            raise RuntimeError("decltype&shape failed")
+        return [int(shape[0]), int(shape[1])], pixel_type
+    shape, pixel_type = auto_args_if_need(path, shape, pixel_type)
+    def print_image_info(path, shape, pixel_type):
+        print("* image visualizer")
+        print("    path =", path)
+        print("    shape=", shape)
+        print("    type =", pixel_type)
+    print_image_info(path, shape, pixel_type)
+    data = np.fromfile(path, dtype=to_np_type(pixel_type))
+    data = np.reshape(data, shape)
+    # if pixel_type in ['c', 'z']:
+    #     print("    origin=")
+    #     print(data)
+    #     data = np.abs(data)
+    return data
 
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="image visualizer")
+    parser.add_argument("--path", type=str, required=True)
+    parser.add_argument("--shape",type=str, nargs="+", default= [])
+    parser.add_argument("--type", type=str, default="")
+    args = parser.parse_args() 
+    assert(os.path.exists(args.path))
+    display_image(load_binary_image_file(args.path, args.shape, args.type))
     # 显示图像
     plt.show()
 

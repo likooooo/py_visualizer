@@ -169,12 +169,17 @@ inline size_t get_ndarray_size(np::ndarray arr) {
 }
 template <class TPixel> inline  std::pair<TPixel*, size_t> ndarray_ref_no_padding(np::ndarray arr) 
 {
+    // using T = TPixel;//std::conditional_t<is_real_or_complex_v<TPixel>,TPixel , typename TPixel::value_type>;
+    using T = typename TPixel::value_type;
     static_assert(std::is_standard_layout_v<TPixel>);
     try{
         auto dtype = arr.get_dtype();
-        if(np::dtype::get_builtin<typename TPixel::value_type>() != dtype) 
+        if(np::dtype::get_builtin<T>() != dtype) 
             throw std::runtime_error("dtype error " + to_string(std::make_tuple(
-                std::string(py::extract<std::string>(dtype.attr("str"))), TypeReflection<TPixel>()
+                std::string(py::extract<std::string>(dtype.attr("str"))), 
+                std::string(py::extract<std::string>(
+                    np::dtype::get_builtin<T>().attr("str"))),
+                TypeReflection<TPixel>()
             )));
         size_t bytes = sizeof_element_ndarray(arr) * get_ndarray_size(arr); 
         return {reinterpret_cast<TPixel*>(arr.get_data()), bytes/sizeof(TPixel)};
@@ -237,6 +242,22 @@ template<class TVec> inline void imshow(const TVec& rowdata, const std::vector<s
     std::vector<int> d(dim.size());
     std::transform(dim.begin(), dim.end(), d.begin(), [](size_t n){return int(n);});
     catch_py_error(py_plot().visulizer["display_image"](create_ndarray_from_vector(rowdata, d)));
+}
+template<class T> inline std::tuple<std::vector<T>, vec2<size_t>> load_image(const std::string& path, const std::vector<size_t> shape = {}){
+    std::string t = "";
+    if constexpr(std::is_same_v<T, int>) t= "n";
+    else if constexpr(std::is_same_v<T, float>) t= "f";
+    else if constexpr(std::is_same_v<T, double>) t= "d";
+    else if constexpr(std::is_same_v<T, complex_t<float>>) t= "c";
+    else if constexpr(std::is_same_v<T, complex_t<double>>) t= "z";
+    else unreachable_constexpr_if<T>{};
+    py::object obj;
+    catch_py_error(obj = py_plot().visulizer["load_binary_image_file"](path, convert_to<std::vector<std::string>>(shape), t));
+    np::ndarray array = convert_to<np::ndarray>(obj);
+    auto [p, size] = ndarray_ref_no_padding<vec<T, 1>>(array);
+    size_t y = array.shape(0);
+    size_t x = size / y;
+    return std::tuple<std::vector<T>, vec2<size_t>>(std::vector<T>((T*)p, (T*)p + size), vec2<size_t>{y, x});
 }
 
 template<class T> inline void plot_curves(const std::vector<std::vector<T>>& rowdata, 

@@ -19,20 +19,27 @@ void test_plot_curve()
         plot_curves(curves,{0, 1, 2}, {0.5, 1, 1.5}, {"Curve 1", "Curve 2", "Curve 3"}, {"--o", "--", ":*"}, sample_rate);
 }
 
+void test_imshow()
+{
+    auto [im, shape] = load_image<std::complex<float>>("pupil_TE_y.exact");
+    std::cout << "shape is " << shape << std::endl;
+    auto [real_part, imag_part] = decompose_from<std::complex<float>, float, float>(im);
+    imshow(real_part, std::vector<size_t>(shape.rbegin(), shape.rend()));
+}
+
 int main() 
 {
     constexpr bool test_deprecated= false;
     catch_py_error(py_engine::init());
     add_path_to_sys_path("core_plugins");
+    test_imshow();
     auto workspace = py_plugin::exec({"./core_plugins/gauge_io.py",
         "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_7.ss",
         "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas",
         "JDV_M", "300", "--shape", "8, 8", "--verbose", "3"
     });
-
     py_plugin::call<void>("image_io", "test");
     catch_py_error(test_plot_curve());
-
     //== deprecated
     if(test_deprecated)
     {
