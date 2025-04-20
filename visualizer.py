@@ -61,7 +61,7 @@ def try_init(data):
         ax.set_ylim([np.min(data), np.max(data)])
     else:
         norm = Normalize(vmin=np.min(data), vmax=np.max(data))
-        im = ax.imshow(data, aspect='auto', cmap='jet', norm = norm)
+        im = ax.imshow(np.real(data), aspect='auto', cmap='jet', norm = norm)
         ax.xaxis.set_ticks_position('bottom')
         ax.invert_yaxis()
         cb = plt.colorbar(im, ax=ax)
@@ -182,7 +182,7 @@ def display_image(matrix):
     else:
         # 显示图像
         ax = plt.gca()
-        im = ax.imshow(matrix, aspect='auto', cmap='jet')
+        im = ax.imshow(np.real(matrix), aspect='auto', cmap='jet')
         ax.xaxis.set_ticks_position('bottom')
         ax.invert_yaxis()  # 图像坐标系反向
         
