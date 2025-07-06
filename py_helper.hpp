@@ -267,12 +267,31 @@ template<class T> inline void plot_curves(const std::vector<std::vector<T>>& row
     const std::vector<std::string>& plot_dot_types,
     const float sample_rate = 1.0
 ){
-    catch_py_error(py_plot().visulizer["plot_curves"](
+    py_plugin::call<void>("plot_curves", "plot_curves",
         py::list(rowdata),
         py::list(start_x),
         py::list(step_x),
         py::list(legends),
         py::list(plot_dot_types),
         sample_rate
-    ));
+    );
 }
+
+template<class rT> inline void plot_field(
+    const std::vector<vec2<rT>>& pos,
+    const std::vector<rT>& dir,
+    const std::vector<rT>& intensity,
+    const std::vector<rT>& ellipticity,
+    const std::vector<std::string>& color,
+    const std::string& title = ""
+){
+    py_plugin::call<void>("plot_source", "plot_source_field", 
+        py::list(pos), 
+        py::list(dir),
+        py::list(intensity),
+        py::list(ellipticity),
+        py::list(color),
+        title
+    );
+}
+
