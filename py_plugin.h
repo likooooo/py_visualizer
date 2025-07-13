@@ -1,6 +1,7 @@
 #pragma once
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <filesystem>
 #include <cassert>
 #include <iostream>
@@ -11,6 +12,9 @@
 #include <functional>
 
 #define catch_py_error(code) do{try{code;}catch (py::error_already_set) {PyErr_Print();exit(1);}}while(0)
+#define __regist_py(line, ...) namespace{bool nameless##line = py_engine::regist_py_custom([]{__VA_ARGS__;});}
+#define regist_py(...) __regist_py(__LINE__, __VA_ARGS__)
+
 
 namespace py = boost::python;
 namespace np = boost::python::numpy;

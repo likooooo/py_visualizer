@@ -73,36 +73,109 @@ template <typename, typename = void>struct has_resize : std::false_type {};
 template <typename T> struct has_resize<T, std::void_t<decltype(std::declval<T>().resize(std::declval<typename T::size_type>()))>> : std::true_type {};
 template <typename T> constexpr bool has_resize_v = has_resize<T>::value;
 
-template<class TContainer> struct stl_container_converter {
-    static PyObject* convert(const TContainer& vec) {
-        py::list list;
-        for (const auto& elem : vec) list.append(elem);
-        return py::incref(list.ptr());
-    }
-    static void* convert_from_python(PyObject* obj) {
-        void* p = std::malloc(sizeof(TContainer));
-        TContainer& vec = *(new (p)TContainer());
-        if (PyList_Check(obj) || PyTuple_Check(obj)) {
-            py::handle<> handle(py::borrowed(obj));
-            py::list list(handle);
-            int n = len(list);
-            if constexpr(has_resize_v<TContainer>){
-                vec.resize(n);
-            }else{
-                if(n > vec.size()){
-                    throw std::out_of_range(std::string(__PRETTY_FUNCTION__) + " (require size, acturay size)=" + to_string(std::make_tuple(n, vec.size())));
-                }
-            }
-            for (int i = 0; i < n; i++) vec[i] = py::extract<typename TContainer::value_type>(list[i]);
+template<class TContainer> class stl_container_converter 
+{
+    using value_type = typename TContainer::value_type;
+
+    struct stl_to_python
+    // #if defined BOOST_PYTHON_SUPPORTS_PY_SIGNATURES
+    //     : converter::to_python_target_type<py::list>
+    // #endif
+    {
+        static PyObject* convert(const TContainer& vec) 
+        {
+            py::list list;
+            for (const auto& elem : vec) list.append(elem);
+            return py::incref(list.ptr());
         }
-        return p;
+    };
+    struct stl_from_python
+    {
+        stl_from_python()
+        {
+            boost::python::converter::registry::push_back(
+                &convertible, 
+                &construct, 
+                py::type_id< TContainer >()
+        // #if defined BOOST_PYTHON_SUPPORTS_PY_SIGNATURES 
+        //         , &converter::expected_from_python_type<py::list>::get_pytype
+        // #endif
+            );
+        }
+        static void* convert_from_python(PyObject* obj) 
+        {
+            void* p = std::malloc(sizeof(TContainer));
+            TContainer& vec = *(new (p)TContainer());
+            if (PyList_Check(obj) || PyTuple_Check(obj)) 
+            {
+                py::handle<> handle(py::borrowed(obj));
+                py::list list(handle);
+                int n = len(list);
+                if constexpr(has_resize_v<TContainer>){
+                    vec.resize(n);
+                }else{
+                    if(n > vec.size()){
+                        throw std::out_of_range(std::string(__PRETTY_FUNCTION__) + " (require size, acturay size)=" + to_string(std::make_tuple(n, vec.size())));
+                    }
+                }
+                for (int i = 0; i < n; i++) vec[i] = py::extract<typename TContainer::value_type>(list[i]);
+            }
+            return p;
+        }
+        static void* convertible(PyObject* obj_ptr) 
+        {
+            return obj_ptr;//PyList_Check(obj_ptr) ? obj_ptr : convert_from_python(obj_ptr);
+        }
+        static void construct(PyObject* obj_ptr, py::converter::rvalue_from_python_stage1_data* data) 
+        {
+            int length = PyList_Size(obj_ptr);
+            if (length < 0) py::throw_error_already_set();
+
+            void* storage = ((py::converter::rvalue_from_python_storage<TContainer>*)data)->storage.bytes;
+            
+            if constexpr(is_vector_v<TContainer>){
+                new (storage) TContainer(length);
+            }else{ // std::array
+                new (storage) TContainer();
+            }
+            TContainer& vec = *reinterpret_cast<TContainer*>(storage);
+            for (int i = 0; i < length; ++i) {
+                PyObject* item = PyList_GetItem(obj_ptr, i);
+                vec.at(i) =py::extract<value_type>(item);
+            }
+            data->convertible = storage;
+        }
+    };
+public:
+    static py::list to_list(const TContainer& c)
+    {
+        return py::list(c);
     }
-    static void register_converter() {
-        py::to_python_converter<TContainer, stl_container_converter<TContainer>>();
-        py::converter::registry::insert(
-            &convert_from_python,
-            py::type_id<TContainer>()
-        );
+    static void register_converter() 
+    {
+        const py::converter::registration* regVectorValue = py::converter::registry::query(py::type_id<TContainer>());
+        if (!(nullptr == regVectorValue || nullptr == (*regVectorValue).m_to_python)) {
+            // std::cerr << TypeReflection<TContainer>() << "'s to python converter has alreadly registed before." << std::endl;
+            return;
+        }
+
+        if constexpr(is_vector_v<TContainer>){
+            if constexpr(is_vec_or_array_v<value_type>) stl_container_converter<value_type>::register_converter();
+            py::class_<TContainer>(TypeReflection<TContainer>().c_str()).def(py::vector_indexing_suite<TContainer>())
+                .def("__repr__", (std::string (*)(const TContainer&))&to_string<TContainer>)
+            ;
+        }
+        else if constexpr(std::is_array_v<TContainer>){
+            if constexpr(is_vec_or_array_v<value_type>) stl_container_converter<value_type>::register_converter();
+            stl_from_python();
+            auto a = py::class_<TContainer>(TypeReflection<TContainer>().c_str()).def(py::init<>())
+                .def("__iter__", py::iterator<TContainer>())
+                .def("__repr__", (std::string (*)(const TContainer&))&to_string<TContainer>)
+            ;
+        }
+        else{
+            std::cerr << TypeReflection<TContainer>() << "'s to python converter is NOT registed." << std::endl;
+        }
     }
 };
 template<class T, class ...TRest> inline

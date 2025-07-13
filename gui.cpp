@@ -80,22 +80,24 @@ void test_imshow()
 
 int main() 
 {
-    catch_py_error(py_engine::init());
-    add_path_to_sys_path("core_plugins");
-    test_imshow();
-    test_plot_source();
-    auto workspace = py_plugin::exec({"./core_plugins/gauge_io.py",
-        "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_7.ss",
-        "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas",
-        "JDV_M", "300", "--shape", "8, 8", "--verbose", "3"
-    });
-    py_plugin::call<void>("image_io", "test");
-    catch_py_error(test_plot_curve());
-    //== deprecated
-    if(test_deprecated)
-    {
-        py_plugin::call<void>("gds_io", "plot_gds", "/home/like/doc/Documents/YuWei/gds/gds/case11.gds");
-        catch_py_error(test_frame_update());
-    }
-    py_engine::dispose();
+    catch_py_error(
+        py_engine::init();
+        add_path_to_sys_path("core_plugins");
+        test_imshow();
+        test_plot_source();
+        auto workspace = py_plugin::exec({"./core_plugins/gauge_io.py",
+            "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_7.ss",
+            "/home/like/model_data/X_File/LG40_poly_File/LG40_PC_CDU_Contour_Mask_L300.oas",
+            "JDV_M", "300", "--shape", "8, 8", "--verbose", "3"
+        });
+        py_plugin::call<void>("image_io", "test");
+        catch_py_error(test_plot_curve());
+        //== deprecated
+        if(test_deprecated)
+        {
+            py_plugin::call<void>("gds_io", "plot_gds", "/home/like/doc/Documents/YuWei/gds/gds/case11.gds");
+            catch_py_error(test_frame_update());
+        }
+        py_engine::dispose();
+    );
 }
