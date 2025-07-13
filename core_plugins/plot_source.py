@@ -91,14 +91,17 @@ def plot_source_field(
 
         # --- Plotting Logic based on ellipticity ---
         if current_ellipticity == 0:  # Plot an arrow
-            end_x = x + np.cos(current_dir_angle) * current_scala
-            end_y = y + np.sin(current_dir_angle) * current_scala
+            x_dir, y_dir = np.cos(current_dir_angle) * current_scala, np.sin(current_dir_angle) * current_scala
+            begin_x, begin_y = x - x_dir, y - y_dir
+            end_x, end_y = x + x_dir, y + y_dir
+
+            all_x_coords.append(begin_x)
+            all_y_coords.append(begin_y)
             all_x_coords.append(end_x)
             all_y_coords.append(end_y)
-
             ax.plot(
-                [x, end_x], # X-coordinates of start and end points
-                [y, end_y], # Y-coordinates of start and end points
+                [begin_x, end_x ], # X-coordinates of start and end points
+                [begin_y, end_y], # Y-coordinates of start and end points
                 color=current_color,
                 linewidth=arrow_width * 100, # Use arrow_width for line thickness, scaled up for visibility
                 zorder=2 # Ensure lines are on top

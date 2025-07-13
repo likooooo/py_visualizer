@@ -40,6 +40,9 @@ void py_engine::init(){
         array<array<float, 2>, 2>, array<array<double, 2>, 2>,
         vector<array<float, 2>>, vector<array<double, 2>>,
 
+        //== 1D
+        array<int64_t, 1>, array<float, 1>, array<double, 1>, array<array<float, 1>, 2>,
+
         //== 2D
         // cutlines
         array<int64_t, 2>, array<array<int64_t, 2>, 2>, vector<array<array<int64_t, 2>, 2>>,
@@ -47,7 +50,9 @@ void py_engine::init(){
         vector<array<int64_t, 2>>, vector<vector<array<int64_t, 2>>>,
 
         //== 3D
-        array<int64_t, 3>
+        array<int64_t, 3>, array<float, 3>, array<double, 3>, array<array<float, 1>, 3>,
+
+        array<array<float, 3>, 2>
     >();
     for(const auto& f : regist_callback_list) f();
 }
