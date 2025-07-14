@@ -163,6 +163,7 @@ public:
             if constexpr(is_vec_or_array_v<value_type>) stl_container_converter<value_type>::register_converter();
             py::class_<TContainer>(TypeReflection<TContainer>().c_str()).def(py::vector_indexing_suite<TContainer>())
                 .def("__repr__", (std::string (*)(const TContainer&))&to_string<TContainer>)
+                .def("clear", &TContainer::clear)
             ;
         }
         else if constexpr(std::is_array_v<TContainer>){
