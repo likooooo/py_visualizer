@@ -164,6 +164,8 @@ public:
             py::class_<TContainer>(TypeReflection<TContainer>().c_str()).def(py::vector_indexing_suite<TContainer>())
                 .def("__repr__", (std::string (*)(const TContainer&))&to_string<TContainer>)
                 .def("clear", &TContainer::clear)
+                .def("reserve", &TContainer::reserve)
+                .def("resize", (void (TContainer::*)(size_t))&TContainer::resize)
             ;
         }
         else if constexpr(std::is_array_v<TContainer>){
@@ -172,7 +174,11 @@ public:
             auto a = py::class_<TContainer>(TypeReflection<TContainer>().c_str()).def(py::init<>())
                 .def("__iter__", py::iterator<TContainer>())
                 .def("__repr__", (std::string (*)(const TContainer&))&to_string<TContainer>)
+                .def("__len__", &TContainer::size)
             ;
+            if constexpr(!is_real_or_complex_v<value_type>){
+                a.def("__getitem__", (value_type& (TContainer::*)(size_t))&TContainer::at, py::return_value_policy<py::reference_existing_object>());
+            }
         }
         else{
             std::cerr << TypeReflection<TContainer>() << "'s to python converter is NOT registed." << std::endl;
