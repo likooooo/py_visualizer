@@ -167,6 +167,7 @@ public:
                 .def("reserve", &TContainer::reserve)
                 .def("resize", (void (TContainer::*)(size_t))&TContainer::resize)
             ;
+            stl_from_python();
         }
         else if constexpr(std::is_array_v<TContainer>){
             if constexpr(is_vec_or_array_v<value_type>) stl_container_converter<value_type>::register_converter();
