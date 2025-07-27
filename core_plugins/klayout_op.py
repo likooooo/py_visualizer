@@ -26,7 +26,7 @@ def load_shpaes(oas_file, cell_name, layer_id):
     layer_index = None
     for li in layout.layer_indices():
         info = layout.get_info(li)
-        if info.layer == layer_id and info.datatype == 0:
+        if layer_id is None or (info.layer == layer_id and info.datatype == 0):
             layer_index = li
             break
     if layer_index is None:
