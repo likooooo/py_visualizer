@@ -29,7 +29,10 @@ template <class E, class... Policies,class... Args> inline  py::class_<E, Polici
 template<class T, class ...TRest> inline void init_exception_converters() 
 {
     std::string name = TypeReflection<T>();
-    exception_converters<T>(name.c_str(), py::init<std::string>());
+    const py::converter::registration* regVectorValue = py::converter::registry::query(py::type_id<T>());
+    if (nullptr == regVectorValue || nullptr == (*regVectorValue).m_to_python) {
+        exception_converters<T>(name.c_str(), py::init<std::string>());
+    }
     if constexpr (sizeof...(TRest)) {
         init_exception_converters<TRest...>();
     }

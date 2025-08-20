@@ -194,10 +194,10 @@ def search(calc_result, target, norminal_list):
         [finer_search_with_plot, finer_search_with_animation][1](calc_result, target, (2.5, 3.5))
     print(f"最佳参数: {best_param:.6f}, 最小 RMS: {best_cost:.6f}")
 
-
-# 模拟目标函数
-def calc_result(x):
-    return np.array([x, x + 1, x + 2])  # 模拟计算结果
-target = np.array([3, 4, 5])
-norminal_list = np.linspace(0, 5, 20)
-search(calc_result, target, norminal_list)
+if __name__ == "__main__":
+    # 模拟目标函数
+    def calc_result(x):
+        return np.array([x, x + 1, x + 2])  # 模拟计算结果
+    target = np.array([3, 4, 5])
+    norminal_list = np.linspace(0, 5, 20)
+    search(calc_result, target, norminal_list)
