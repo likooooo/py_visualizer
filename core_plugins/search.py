@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from grid_info import *
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize_scalar
