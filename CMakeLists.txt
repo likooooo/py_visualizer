@@ -47,6 +47,7 @@ install(TARGETS py_gui py_visualizer EXPORT pyTargets
 )
 install(FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/py_helper.hpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/py_convert.hpp 
     ${CMAKE_CURRENT_SOURCE_DIR}/py_plugin.h
     DESTINATION include)
 
