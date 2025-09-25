@@ -133,13 +133,9 @@ template<class TVec> inline void imshow(const TVec& rowdata, const std::vector<s
     catch_py_error(py_plot().visulizer["display_image"](create_ndarray_from_vector(rowdata, d)));
 }
 template<class T> inline std::tuple<std::vector<T>, vec2<size_t>> load_image(const std::string& path, const std::vector<size_t> shape = {}){
-    std::string t = "";
-    if constexpr(std::is_same_v<T, int>) t= "n";
-    else if constexpr(std::is_same_v<T, float>) t= "f";
-    else if constexpr(std::is_same_v<T, double>) t= "d";
-    else if constexpr(std::is_same_v<T, complex_t<float>>) t= "c";
-    else if constexpr(std::is_same_v<T, complex_t<double>>) t= "z";
-    else unreachable_constexpr_if<T>{};
+    constexpr const char* str = get_numerical_type_str_suffix<T>();
+    static_assert("" != str);
+    std::string t = str;
     py::object obj;
     catch_py_error(obj = py_plot().visulizer["load_binary_image_file"](path, convert_to<std::vector<std::string>>(shape), t));
     np::ndarray array = convert_to<np::ndarray>(obj);
